@@ -71,7 +71,7 @@ async function dispatch(alertPayload) {
     if (lastSent && Date.now() - lastSent < COOLDOWN_MS) { stats.skipped++; continue; }
 
     const mark = () => { stats.sent++; recentlySent.set(sub.id, Date.now()); db.markNotified(sub.id); };
-    const fail = (channel, err) => { stats.errors++; console.error(`[Notifier] ${channel} failed for ${sub.name}:`, err.message); };
+    const fail = (channel, err) => { stats.errors++; console.error(`[Notifier] ${channel} failed for ${sub.name}:`, err.message || JSON.stringify(err)); };
 
     if (wantsEmail(sub.method) && sub.email)
       promises.push(sendEmail(sub, areaStr, timeStr).then(mark).catch(e => fail('Email', e)));
@@ -181,7 +181,7 @@ async function sendWelcome(sub) {
           areas:           '',
           alert_time:      '',
         }
-      ).catch(e => console.warn('[Notifier] Welcome email failed:', e.message))
+      ).catch(e => console.warn('[Notifier] Welcome email failed:', e.message || JSON.stringify(e)))
     );
   }
 
