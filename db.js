@@ -46,12 +46,12 @@ const db = {
 
     const subs = _read();
 
-    // Deduplicate
-    const dupe = subs.find(s =>
+    // Deduplicate — only block if the existing record is still active
+    const dupe = subs.find(s => s.active && (
       (email    && s.email    === email?.trim().toLowerCase()) ||
       (phone    && s.phone    === normalizePhone(phone))       ||
       (whatsapp && s.whatsapp === normalizePhone(whatsapp))
-    );
+    ));
     if (dupe) return { ok: false, error: 'already_exists', id: dupe.id };
 
     // Normalize: if whatsapp number not given separately, use phone
