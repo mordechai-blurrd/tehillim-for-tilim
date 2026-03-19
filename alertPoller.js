@@ -4,27 +4,32 @@
  * Emits 'alert' events when new rocket fire is detected.
  * Emits 'clear' events when the alert window ends.
  *
- * Primary source:  https://www.oref.org.il  (official IDF Home Front Command)
- * Fallback source: https://api.tzevaadom.co.il (community mirror, higher uptime)
+ * Source chain (falls through on consecutive failures):
+ *   1. oref.org.il        — official IDF feed (requires Israeli IP)
+ *   2. tzevaadom.co.il    — community mirror, globally accessible
+ *   3. mako.co.il         — Israeli news feed, globally accessible
  */
 
 const { EventEmitter } = require('events');
 const fetch = (...args) => import('node-fetch').then(({ default: f }) => f(...args));
 
-const OREF_URL      = 'https://www.oref.org.il/WarningMessages/alert/alerts.json';
-const TZEVA_URL     = 'https://api.tzevaadom.co.il/alerts';
-const POLL_MS       = (parseInt(process.env.POLL_INTERVAL_SECONDS) || 5) * 1000;
-const CLEAR_AFTER_MS = 30_000; // consider alert over if no new data for 30s
+const OREF_URL  = 'https://www.oref.org.il/WarningMessages/alert/alerts.json';
+const TZEVA_URL = 'https://api.tzevaadom.co.il/notifications';
+const MAKO_URL  = 'https://www.mako.co.il/Collab/amudanan/alerts.json';
+
+const POLL_MS        = (parseInt(process.env.POLL_INTERVAL_SECONDS) || 5) * 1000;
+const CLEAR_AFTER_MS = 30_000;
+const SOURCES        = ['oref', 'tzevaadom', 'mako'];
 
 class AlertPoller extends EventEmitter {
   constructor() {
     super();
-    this._lastAlertId    = null;
-    this._lastAlertTime  = null;
-    this._clearTimer     = null;
-    this._active         = false;
-    this._timer          = null;
-    this._useFallback    = false;
+    this._lastAlertId      = null;
+    this._lastAlertTime    = null;
+    this._clearTimer       = null;
+    this._active           = false;
+    this._timer            = null;
+    this._sourceIdx        = 0;   // index into SOURCES
     this._consecutiveFails = 0;
   }
 
@@ -35,32 +40,37 @@ class AlertPoller extends EventEmitter {
   }
 
   stop() {
-    if (this._timer) clearInterval(this._timer);
+    if (this._timer)     clearInterval(this._timer);
     if (this._clearTimer) clearTimeout(this._clearTimer);
   }
 
   async _tick() {
     try {
-      const data = this._useFallback
-        ? await this._fetchTzevaadom()
-        : await this._fetchOref();
-
+      const data = await this._fetchCurrent();
       this._consecutiveFails = 0;
-      this._useFallback = false;
       this._handleData(data);
     } catch (err) {
       this._consecutiveFails++;
-      console.warn(`[Poller] Fetch failed (${this._consecutiveFails}):`, err.message);
+      console.warn(`[Poller] Fetch failed (${this._consecutiveFails}) [${SOURCES[this._sourceIdx]}]:`, err.message);
 
-      // Switch to fallback after 3 consecutive primary failures
-      if (this._consecutiveFails >= 3 && !this._useFallback) {
-        console.log('[Poller] Switching to fallback source: tzevaadom.co.il');
-        this._useFallback = true;
+      // Advance to next source after 3 consecutive failures
+      if (this._consecutiveFails >= 3 && this._sourceIdx < SOURCES.length - 1) {
+        this._sourceIdx++;
+        this._consecutiveFails = 0;
+        console.log(`[Poller] Switching to fallback source: ${SOURCES[this._sourceIdx]}`);
       }
     }
   }
 
-  // ── Primary: oref.org.il ────────────────────────────────
+  _fetchCurrent() {
+    switch (SOURCES[this._sourceIdx]) {
+      case 'tzevaadom': return this._fetchTzevaadom();
+      case 'mako':      return this._fetchMako();
+      default:          return this._fetchOref();
+    }
+  }
+
+  // ── Primary: oref.org.il (requires Israeli IP) ──────────
   async _fetchOref() {
     const res = await fetch(OREF_URL, {
       headers: {
@@ -72,20 +82,18 @@ class AlertPoller extends EventEmitter {
       timeout: 4000,
     });
 
-    // 204 = no active alert
     if (res.status === 204) return null;
     if (!res.ok) throw new Error(`oref HTTP ${res.status}`);
 
     const text = await res.text();
     if (!text || text.trim() === '') return null;
 
-    // Strip BOM if present
     const clean = text.replace(/^\uFEFF/, '').trim();
     return JSON.parse(clean);
-    // Shape: { id: "133...", cat: "1", title: "ירי רקטות...", data: ["תל אביב", ...], desc: "..." }
+    // Shape: { id, cat, title, data: ["תל אביב", ...], desc }
   }
 
-  // ── Fallback: tzevaadom.co.il ───────────────────────────
+  // ── Fallback 1: api.tzevaadom.co.il/notifications ───────
   async _fetchTzevaadom() {
     const res = await fetch(TZEVA_URL, {
       headers: { 'Accept': 'application/json' },
@@ -93,30 +101,50 @@ class AlertPoller extends EventEmitter {
     });
     if (!res.ok) throw new Error(`tzevaadom HTTP ${res.status}`);
     const data = await res.json();
-    if (!data || !data.alerts || data.alerts.length === 0) return null;
 
-    // Normalize to oref shape
-    const latest = data.alerts[0];
+    // Returns [] when quiet, array of notification objects when active
+    if (!Array.isArray(data) || data.length === 0) return null;
+
+    const latest = data[0];
     return {
-      id:    String(latest.time || Date.now()),
+      id:    String(latest.time || latest.id || Date.now()),
       cat:   '1',
       title: latest.title || 'ירי רקטות וטילים',
-      data:  latest.cities || [],
-      desc:  latest.instructions || 'היכנסו למרחב המוגן',
+      data:  latest.cities || latest.data || [],
+      desc:  latest.instructions || latest.desc || 'היכנסו למרחב המוגן',
+    };
+  }
+
+  // ── Fallback 2: mako.co.il alerts feed ──────────────────
+  async _fetchMako() {
+    const res = await fetch(MAKO_URL, {
+      headers: { 'Accept': 'application/json' },
+      timeout: 4000,
+    });
+    if (!res.ok) throw new Error(`mako HTTP ${res.status}`);
+    const data = await res.json();
+
+    // Shape: { id: "timestamp", data: ["city", ...] }
+    if (!data || !Array.isArray(data.data) || data.data.length === 0) return null;
+
+    return {
+      id:    String(data.id || Date.now()),
+      cat:   '1',
+      title: 'ירי רקטות וטילים',
+      data:  data.data,
+      desc:  'היכנסו למרחב המוגן',
     };
   }
 
   // ── Handle parsed alert data ────────────────────────────
   _handleData(raw) {
     if (!raw || !raw.data || raw.data.length === 0) {
-      // No active alert in response — start clear countdown
       if (this._active && !this._clearTimer) {
         this._clearTimer = setTimeout(() => this._emitClear(), CLEAR_AFTER_MS);
       }
       return;
     }
 
-    // Cancel any pending clear
     if (this._clearTimer) {
       clearTimeout(this._clearTimer);
       this._clearTimer = null;
@@ -131,23 +159,23 @@ class AlertPoller extends EventEmitter {
 
       const payload = {
         id:     alertId,
-        areas:  raw.data,           // Hebrew area names
+        areas:  raw.data,
         title:  raw.title,
         desc:   raw.desc,
-        source: this._useFallback ? 'tzevaadom' : 'oref',
+        source: SOURCES[this._sourceIdx],
         ts:     new Date().toISOString(),
       };
 
-      console.log(`[Poller] 🚨 ALERT — ${payload.areas.join(', ')}`);
+      console.log(`[Poller] 🚨 ALERT (${payload.source}) — ${payload.areas.join(', ')}`);
       this.emit('alert', payload);
     }
   }
 
   _emitClear() {
     if (!this._active) return;
-    this._active       = false;
-    this._clearTimer   = null;
-    this._lastAlertId  = null;
+    this._active      = false;
+    this._clearTimer  = null;
+    this._lastAlertId = null;
     console.log('[Poller] ✅ Alert cleared');
     this.emit('clear');
   }
@@ -155,7 +183,7 @@ class AlertPoller extends EventEmitter {
   getStatus() {
     return {
       active:   this._active,
-      source:   this._useFallback ? 'tzevaadom' : 'oref',
+      source:   SOURCES[this._sourceIdx],
       lastId:   this._lastAlertId,
       lastTime: this._lastAlertTime,
     };
