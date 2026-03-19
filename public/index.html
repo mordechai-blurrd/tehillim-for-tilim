@@ -199,14 +199,6 @@
     .badge { display: inline-flex; align-items: center; gap: 7px; background: rgba(255,255,255,0.04); border: 1px solid var(--border); border-radius: 20px; padding: 5px 12px; font-size: 11px; color: var(--muted); margin-top: 16px; }
     .badge-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); }
 
-    /* ── Dev Panel ── */
-    .dev-panel { border: 1px dashed rgba(255,255,255,0.08); border-radius: var(--radius); padding: 20px; margin-top: 24px; }
-    .dev-label { font-size: 10px; font-weight: 500; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); margin-bottom: 12px; }
-    .dev-btn { background: rgba(230,57,70,0.12); border: 1px solid rgba(230,57,70,0.25); border-radius: 7px; color: var(--red-lt); font-family: var(--font-b); font-size: 12px; padding: 8px 14px; cursor: pointer; margin: 0 8px 8px 0; transition: all 0.18s; }
-    .dev-btn:hover { background: rgba(230,57,70,0.25); }
-    .dev-btn.clear { background: rgba(74,222,128,0.1); border-color: rgba(74,222,128,0.25); color: var(--green); }
-    .dev-btn.clear:hover { background: rgba(74,222,128,0.2); }
-    .dev-note { font-size: 11px; color: rgba(122,135,153,0.6); margin-top: 8px; line-height: 1.6; }
 
     /* ── Toast ── */
     #toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(16px); background: #1a2540; border: 1px solid var(--border); border-radius: 40px; padding: 11px 22px; font-size: 13px; opacity: 0; pointer-events: none; transition: opacity 0.28s, transform 0.28s; white-space: nowrap; z-index: 9999; }
@@ -353,17 +345,6 @@
       <div class="faq-a">Only during real rocket alert events. Rapid bursts of sirens within a short window are grouped into one notification so you're not overwhelmed.</div>
     </div>
     <div class="badge"><div class="badge-dot"></div>Live: oref.org.il · fallback: tzevaadom.co.il</div>
-  </div>
-
-  <!-- Dev Panel -->
-  <div class="dev-panel fade">
-    <div class="dev-label">⚙ Developer Panel — Simulate Alerts</div>
-    <button class="dev-btn" onclick="devAlert(['Tel Aviv','Rishon LeZion','Bat Yam'])">🚨 Tel Aviv Area</button>
-    <button class="dev-btn" onclick="devAlert(['Ashkelon','Sderot','Netivot','Kiryat Gat'])">🚨 South</button>
-    <button class="dev-btn" onclick="devAlert(['Haifa','Kiriat Ata','Nahariya'])">🚨 North</button>
-    <button class="dev-btn" onclick="devAlert(['Jerusalem'])">🚨 Jerusalem</button>
-    <button class="dev-btn clear" onclick="devClear()">✅ All Clear</button>
-    <div class="dev-note">Buttons call POST /api/test-alert → server polls Pikud Ha'oref every 5s, broadcasts via WebSocket, fires Email + SMS + WhatsApp to all subscribers.</div>
   </div>
 
   <footer class="fade">
@@ -527,20 +508,6 @@ function playBeep(){
     osc.start(); osc.stop(ctx.currentTime+0.8);
   }catch{}
 }
-
-/* ── Dev Panel ── */
-async function devAlert(areas){
-  try{
-    const r=await fetch('/api/test-alert',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({areas})});
-    const d=await r.json();
-    if(d.ok) toast(`🚨 Alert sent — notified ${d.notifyStats?.sent||0}`,'err');
-    else toast(d.error||'Error','err');
-  }catch{
-    triggerAlert({areas});
-    toast('🚨 Alert simulated (UI only)','info');
-  }
-}
-function devClear(){ clearAlert(); try{ fetch('/api/test-alert',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({areas:[],_clear:true})}); }catch{} }
 
 /* ── Toast ── */
 let _toastTimer;
