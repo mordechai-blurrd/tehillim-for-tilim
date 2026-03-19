@@ -21,7 +21,11 @@ const fs   = require('fs');
 const path = require('path');
 const { randomUUID } = require('crypto');
 
-const DB_PATH = path.join(__dirname, 'subscribers.json');
+// Use the persistent volume path in production (/app/data must be mounted as a
+// Railway volume). Falls back to the project root for local development.
+const DATA_DIR = fs.existsSync('/app/data') ? '/app/data' : __dirname;
+const DB_PATH  = path.join(DATA_DIR, 'subscribers.json');
+console.log(`[DB] Store: ${DB_PATH}`);
 
 const VALID_METHODS = ['email','sms','whatsapp','sms_whatsapp','email_sms','email_whatsapp','all'];
 
