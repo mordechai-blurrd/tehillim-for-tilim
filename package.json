@@ -1,0 +1,29 @@
+{
+  "name": "t4t",
+  "version": "1.0.0",
+  "description": "Real-time rocket alert notifications with a call to say Tehillim.",
+  "main": "index.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "cross-env NODE_ENV=development node server.js",
+    "test": "node -e \"require('./alertPoller'); require('./db'); require('./notifier'); console.log('All modules loaded OK');\""
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@emailjs/nodejs": "^5.0.2",
+    "cors": "^2.8.6",
+    "dotenv": "^17.3.1",
+    "express": "^5.2.1",
+    "node-fetch": "^3.3.2",
+    "twilio": "^5.13.0",
+    "ws": "^8.19.0"
+  },
+  "devDependencies": {
+    "cross-env": "^10.1.0"
+  }
+}

@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Tehillim for Tilim — תהילים לטילים</title>
+  <meta name="description" content="Get notified instantly when rockets are fired toward Israel. Stop and say Tehillim." />
+  <link href="https://fonts.googleapis.com/css2?family=Frank+Ruhl+Libre:wght@300;400;500;700;900&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --navy:    #0b1120;
+      --surface: #151e30;
+      --border:  rgba(255,255,255,0.07);
+      --gold:    #c9a84c;
+      --gold-lt: #e8c97a;
+      --gold-dk: #7a5e1e;
+      --red:     #e63946;
+      --red-lt:  #ff6b74;
+      --green:   #4ade80;
+      --white:   #f5f0e8;
+      --muted:   #7a8799;
+      --radius:  16px;
+      --font-h:  'Frank Ruhl Libre', Georgia, serif;
+      --font-b:  'DM Sans', sans-serif;
+    }
+    html { scroll-behavior: smooth; }
+    body {
+      background: var(--navy); color: var(--white);
+      font-family: var(--font-b); font-weight: 300;
+      line-height: 1.6; min-height: 100vh; overflow-x: hidden;
+    }
+    body::before {
+      content: ''; position: fixed; inset: 0; z-index: 0;
+      background: radial-gradient(ellipse 80% 50% at 50% -5%, rgba(201,168,76,0.11) 0%, transparent 55%);
+      pointer-events: none;
+    }
+    #stars { position: fixed; inset: 0; z-index: 0; pointer-events: none; }
+
+    /* ── Layout ── */
+    .page { position: relative; z-index: 1; max-width: 660px; margin: 0 auto; padding: 56px 24px 100px; }
+
+    /* ── Alert Banner ── */
+    #alert-banner {
+      position: sticky; top: 0; z-index: 100; display: none;
+      background: linear-gradient(135deg, rgba(230,57,70,0.22), rgba(180,20,30,0.12));
+      border-bottom: 1px solid rgba(230,57,70,0.45);
+      padding: 18px 24px; text-align: center;
+      backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+      animation: pulse-glow 2s ease-in-out infinite;
+    }
+    #alert-banner.on { display: block; }
+    @keyframes pulse-glow {
+      0%,100% { box-shadow: 0 2px 30px rgba(230,57,70,0.0); }
+      50%      { box-shadow: 0 2px 30px rgba(230,57,70,0.25); }
+    }
+    .alert-siren { font-size: 28px; animation: spin 1s linear infinite; display: inline-block; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .alert-title-text { font-family: var(--font-h); font-size: clamp(18px,4vw,22px); font-weight: 700; color: var(--red-lt); margin: 4px 0; }
+    .alert-sub { font-size: 14px; color: rgba(245,240,232,0.85); }
+    .alert-areas-text { font-size: 12px; color: var(--muted); margin-top: 5px; font-style: italic; }
+
+    /* ── Header ── */
+    header { text-align: center; margin-bottom: 40px; }
+    .hebrew-title {
+      font-family: var(--font-h); font-size: clamp(46px,11vw,82px); font-weight: 900;
+      letter-spacing: -1px; line-height: 1.0;
+      background: linear-gradient(150deg, var(--gold-lt) 0%, var(--gold) 55%, #a07828 100%);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+      margin-bottom: 8px;
+    }
+    .english-sub {
+      font-family: var(--font-b); font-size: clamp(11px,2.5vw,14px); font-weight: 500;
+      letter-spacing: 0.22em; text-transform: uppercase; color: var(--muted); margin-bottom: 24px;
+    }
+    .tagline {
+      font-family: var(--font-h); font-size: clamp(15px,3.5vw,20px);
+      font-weight: 400; font-style: italic;
+      color: rgba(245,240,232,0.75); max-width: 380px; margin: 0 auto; line-height: 1.55;
+    }
+
+    /* ── Status ── */
+    .status-row { display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 32px; }
+    .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green); box-shadow: 0 0 8px 2px rgba(74,222,128,0.45); animation: breathe 2.8s ease-in-out infinite; }
+    .dot.red   { background: var(--red);  box-shadow: 0 0 10px 3px rgba(230,57,70,0.5); animation: none; }
+    .dot.grey  { background: #444; box-shadow: none; animation: none; }
+    @keyframes breathe { 0%,100%{opacity:1;} 50%{opacity:0.25;} }
+    #status-text { font-size: 12px; color: var(--muted); letter-spacing: 0.06em; }
+
+    /* ── Counter ── */
+    .counter-wrap { display: flex; justify-content: center; margin-bottom: 44px; }
+    .counter-card {
+      background: linear-gradient(135deg, rgba(201,168,76,0.1), rgba(201,168,76,0.03));
+      border: 1px solid rgba(201,168,76,0.25);
+      border-radius: 24px; padding: 22px 52px; text-align: center;
+      position: relative; overflow: hidden;
+    }
+    .counter-card::before {
+      content: ''; position: absolute; inset: 0;
+      background: radial-gradient(ellipse 80% 60% at 50% 0%, rgba(201,168,76,0.09), transparent 70%);
+      pointer-events: none;
+    }
+    .counter-number {
+      font-family: var(--font-h); font-size: clamp(48px,12vw,72px);
+      font-weight: 900; line-height: 1; letter-spacing: -2px;
+      background: linear-gradient(135deg, var(--gold-lt) 0%, var(--gold) 60%, #a07828 100%);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+      margin-bottom: 6px; display: block;
+    }
+    .counter-label { font-size: 13px; color: var(--muted); letter-spacing: 0.08em; text-transform: uppercase; }
+    .counter-sublabel { font-family: var(--font-h); font-style: italic; font-size: 14px; color: rgba(201,168,76,0.55); margin-top: 5px; }
+    @keyframes countPop {
+      0%   { transform: scale(1); }
+      45%  { transform: scale(1.1); }
+      100% { transform: scale(1); }
+    }
+    .counter-number.pop { animation: countPop 0.45s cubic-bezier(0.34,1.56,0.64,1); }
+
+    /* ── Divider ── */
+    .divider { display: flex; align-items: center; gap: 16px; margin: 36px 0; color: var(--gold-dk); font-size: 16px; }
+    .divider::before,.divider::after { content:''; flex:1; height:1px; background: linear-gradient(90deg, transparent, rgba(201,168,76,0.3) 50%, transparent); }
+
+    /* ── Card ── */
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 36px; margin-bottom: 24px; }
+    @media(max-width:480px) { .card { padding: 24px 18px; } }
+    .card-title { font-family: var(--font-h); font-size: 21px; font-weight: 700; color: var(--gold-lt); margin-bottom: 6px; }
+    .card-sub { font-size: 14px; color: var(--muted); margin-bottom: 26px; line-height: 1.55; }
+
+    /* ── Form ── */
+    .field { margin-bottom: 16px; }
+    label.field-label { display: block; font-size: 11px; font-weight: 500; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); margin-bottom: 7px; }
+    input[type=text], input[type=email], input[type=tel] {
+      width: 100%; background: rgba(255,255,255,0.04); border: 1px solid var(--border);
+      border-radius: 9px; color: var(--white); font-family: var(--font-b);
+      font-size: 15px; font-weight: 300; padding: 13px 16px;
+      outline: none; -webkit-appearance: none; transition: border-color 0.2s, background 0.2s;
+    }
+    input::placeholder { color: rgba(122,135,153,0.55); }
+    input:focus { border-color: var(--gold); background: rgba(201,168,76,0.05); }
+    input.shake { animation: shake 0.35s ease; border-color: var(--red) !important; }
+    @keyframes shake { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-5px)} 75%{transform:translateX(5px)} }
+
+    .radio-group { display: flex; gap: 10px; flex-wrap: wrap; }
+    .radio-opt {
+      flex: 1; min-width: 100px;
+      display: flex; align-items: center; justify-content: center; gap: 7px;
+      background: rgba(255,255,255,0.03); border: 1px solid var(--border);
+      border-radius: 9px; padding: 11px 10px; cursor: pointer;
+      transition: all 0.18s; font-size: 13px; user-select: none;
+    }
+    .radio-opt:hover { border-color: rgba(201,168,76,0.4); }
+    .radio-opt.on { border-color: var(--gold); background: rgba(201,168,76,0.1); color: var(--gold-lt); }
+    .combo-opt { font-size: 12px; padding: 9px 8px; }
+
+    .sub-field { display: none; }
+    .sub-field.on { display: block; }
+
+    .field-hint { font-size: 11px; color: var(--muted); margin-top: 6px; }
+    .wa-note {
+      margin-top: 10px; padding: 10px 14px;
+      background: rgba(37,211,102,0.07); border: 1px solid rgba(37,211,102,0.2);
+      border-radius: 8px; font-size: 12px; color: rgba(245,240,232,0.7); line-height: 1.6;
+    }
+    .wa-note code { background: rgba(37,211,102,0.15); border-radius: 4px; padding: 1px 5px; font-size: 11px; color: #4ade80; }
+
+    .btn-primary {
+      width: 100%; background: linear-gradient(135deg, #d4a93c 0%, #9a6e18 100%);
+      border: none; border-radius: 9px; color: #0b1120;
+      font-family: var(--font-h); font-size: 17px; font-weight: 700;
+      padding: 15px 24px; cursor: pointer; margin-top: 6px;
+      transition: opacity 0.2s, transform 0.15s; letter-spacing: 0.01em;
+    }
+    .btn-primary:hover { opacity: 0.9; transform: translateY(-1px); }
+    .btn-primary:active { transform: translateY(0); }
+    .btn-primary:disabled { opacity: 0.35; cursor: not-allowed; transform: none; }
+    .form-note { font-size: 11px; color: var(--muted); text-align: center; margin-top: 14px; line-height: 1.6; }
+
+    /* ── Success ── */
+    #success-state { display: none; text-align: center; padding: 20px 0 8px; }
+    #success-state.on { display: block; }
+    .success-icon { font-size: 52px; margin-bottom: 14px; }
+    .success-title { font-family: var(--font-h); font-size: 26px; font-weight: 700; color: var(--gold-lt); margin-bottom: 8px; }
+    .success-sub { font-size: 14px; color: var(--muted); line-height: 1.7; }
+
+    /* ── Tehillim Box ── */
+    .tehillim-box {
+      background: linear-gradient(135deg, rgba(201,168,76,0.07), rgba(201,168,76,0.02));
+      border: 1px solid rgba(201,168,76,0.18); border-radius: var(--radius);
+      padding: 30px; text-align: center;
+    }
+    .heb-verse { font-family: var(--font-h); font-size: clamp(19px,5vw,28px); font-weight: 700; color: var(--gold-lt); line-height: 1.75; direction: rtl; margin-bottom: 16px; }
+    .eng-verse { font-family: var(--font-h); font-style: italic; font-size: 15px; color: rgba(245,240,232,0.6); line-height: 1.75; }
+    .verse-ref { font-size: 12px; color: var(--gold-dk); margin-top: 8px; }
+
+    /* ── FAQ ── */
+    .faq-item { margin-bottom: 20px; }
+    .faq-q { font-size: 14px; font-weight: 500; color: var(--gold); margin-bottom: 4px; }
+    .faq-a { font-size: 14px; color: rgba(245,240,232,0.65); line-height: 1.65; }
+    .badge { display: inline-flex; align-items: center; gap: 7px; background: rgba(255,255,255,0.04); border: 1px solid var(--border); border-radius: 20px; padding: 5px 12px; font-size: 11px; color: var(--muted); margin-top: 16px; }
+    .badge-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); }
+
+    /* ── Dev Panel ── */
+    .dev-panel { border: 1px dashed rgba(255,255,255,0.08); border-radius: var(--radius); padding: 20px; margin-top: 24px; }
+    .dev-label { font-size: 10px; font-weight: 500; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); margin-bottom: 12px; }
+    .dev-btn { background: rgba(230,57,70,0.12); border: 1px solid rgba(230,57,70,0.25); border-radius: 7px; color: var(--red-lt); font-family: var(--font-b); font-size: 12px; padding: 8px 14px; cursor: pointer; margin: 0 8px 8px 0; transition: all 0.18s; }
+    .dev-btn:hover { background: rgba(230,57,70,0.25); }
+    .dev-btn.clear { background: rgba(74,222,128,0.1); border-color: rgba(74,222,128,0.25); color: var(--green); }
+    .dev-btn.clear:hover { background: rgba(74,222,128,0.2); }
+    .dev-note { font-size: 11px; color: rgba(122,135,153,0.6); margin-top: 8px; line-height: 1.6; }
+
+    /* ── Toast ── */
+    #toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(16px); background: #1a2540; border: 1px solid var(--border); border-radius: 40px; padding: 11px 22px; font-size: 13px; opacity: 0; pointer-events: none; transition: opacity 0.28s, transform 0.28s; white-space: nowrap; z-index: 9999; }
+    #toast.on  { opacity: 1; transform: translateX(-50%) translateY(0); }
+    #toast.ok  { border-color: rgba(74,222,128,0.4);  color: var(--green); }
+    #toast.err { border-color: rgba(230,57,70,0.4);   color: var(--red-lt); }
+    #toast.info{ border-color: rgba(201,168,76,0.4);  color: var(--gold-lt); }
+
+    /* ── Footer ── */
+    footer { text-align: center; margin-top: 56px; font-size: 12px; color: rgba(122,135,153,0.35); line-height: 1.8; }
+    footer span { color: var(--gold-dk); }
+
+    /* ── Fade-in ── */
+    .fade { opacity: 0; transform: translateY(18px); transition: opacity 0.6s ease, transform 0.6s ease; }
+    .fade.in { opacity: 1; transform: none; }
+  </style>
+</head>
+<body>
+
+<canvas id="stars"></canvas>
+<div id="toast"></div>
+
+<!-- Sticky Alert Banner -->
+<div id="alert-banner">
+  <div class="alert-siren">🚨</div>
+  <div class="alert-title-text">Red Alert — Rocket Fire Detected</div>
+  <div class="alert-sub">Please stop what you are doing and say Tehillim now.</div>
+  <div class="alert-areas-text" id="alert-areas"></div>
+</div>
+
+<div class="page">
+
+  <!-- Header -->
+  <header class="fade">
+    <div class="hebrew-title">תהילים לטילים</div>
+    <div class="english-sub">Tehillim for Tilim</div>
+    <p class="tagline">"When rockets fly, Klal Yisroel davens as one."</p>
+  </header>
+
+  <!-- Status -->
+  <div class="status-row fade">
+    <div class="dot" id="status-dot"></div>
+    <span id="status-text">Connecting to alert feed…</span>
+  </div>
+
+  <!-- Counter -->
+  <div class="counter-wrap fade">
+    <div class="counter-card">
+      <span class="counter-number" id="sub-count">0</span>
+      <div class="counter-label">People signed up &amp; praying together</div>
+      <div class="counter-sublabel">עם ישראל חי</div>
+    </div>
+  </div>
+
+  <!-- Sign-up card -->
+  <div class="card fade" id="signup-card">
+    <div class="card-title">Get Notified. Say Tehillim.</div>
+    <div class="card-sub">Receive an instant alert anywhere in the world the moment rockets are fired toward Israel.</div>
+
+    <div id="form-body">
+      <div class="field">
+        <label class="field-label" for="f-name">Your Name</label>
+        <input type="text" id="f-name" placeholder="e.g. Rivka Cohen" autocomplete="given-name" />
+      </div>
+
+      <div class="field">
+        <label class="field-label">Notify me via</label>
+        <div class="radio-group" style="margin-bottom:8px">
+          <div class="radio-opt" id="opt-email"    onclick="pickMethod('email')">✉️ &nbsp;Email</div>
+          <div class="radio-opt" id="opt-sms"      onclick="pickMethod('sms')">📱 &nbsp;SMS</div>
+          <div class="radio-opt" id="opt-whatsapp" onclick="pickMethod('whatsapp')">💬 &nbsp;WhatsApp</div>
+        </div>
+        <div class="radio-group">
+          <div class="radio-opt combo-opt" id="opt-email_sms"      onclick="pickMethod('email_sms')">✉️+📱 Email &amp; SMS</div>
+          <div class="radio-opt combo-opt" id="opt-email_whatsapp" onclick="pickMethod('email_whatsapp')">✉️+💬 Email &amp; WA</div>
+          <div class="radio-opt combo-opt" id="opt-all"            onclick="pickMethod('all')">🔔 All Three</div>
+        </div>
+      </div>
+
+      <div class="field sub-field" id="f-email-wrap">
+        <label class="field-label" for="f-email">Email Address</label>
+        <input type="email" id="f-email" placeholder="you@example.com" autocomplete="email" />
+      </div>
+
+      <div class="field sub-field" id="f-phone-wrap">
+        <label class="field-label" for="f-phone">Phone Number (with country code)</label>
+        <input type="tel" id="f-phone" placeholder="+1 212 555 0100" autocomplete="tel" />
+        <div class="field-hint" id="phone-hint" style="display:none">Can be the same number as your WhatsApp below.</div>
+      </div>
+
+      <div class="field sub-field" id="f-wa-wrap">
+        <label class="field-label" for="f-wa">WhatsApp Number (with country code)</label>
+        <input type="tel" id="f-wa" placeholder="+1 212 555 0100" autocomplete="tel" />
+        <div class="wa-note">
+          💡 <strong>First time?</strong> Send <code>join &lt;your-word&gt;</code> to <strong>+1 415 523 8886</strong> on WhatsApp once to activate alerts.
+        </div>
+      </div>
+
+      <button class="btn-primary" id="signup-btn" onclick="handleSignup()">
+        Sign Me Up &nbsp;·&nbsp; עם ישראל חי
+      </button>
+      <p class="form-note">Free · No spam · Unsubscribe anytime<br>Alerts from Pikud Ha'oref — Israel Home Front Command</p>
+    </div>
+
+    <div id="success-state">
+      <div class="success-icon">🕊️</div>
+      <div class="success-title">You're in.</div>
+      <div class="success-sub">
+        You'll be notified the instant an alert is issued — wherever you are.<br><br>
+        May your Tehillim rise straight to the Heavens.<br>
+        <span style="color:var(--gold); font-family:var(--font-h); font-size:17px;">עם ישראל חי</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="divider fade">✡</div>
+
+  <!-- Tehillim verse -->
+  <div class="tehillim-box fade">
+    <div class="heb-verse">
+      יְהוָה אוֹרִי וְיִשְׁעִי מִמִּי אִירָא<br>
+      יְהוָה מָעוֹז חַיַּי מִמִּי אֶפְחָד
+    </div>
+    <div class="eng-verse">
+      "The Lord is my light and my salvation — whom shall I fear?<br>
+      The Lord is the stronghold of my life — of whom shall I be afraid?"
+    </div>
+    <div class="verse-ref">Tehillim / Psalms 27:1</div>
+  </div>
+
+  <div class="divider fade">✡</div>
+
+  <!-- FAQ -->
+  <div class="card fade">
+    <div class="card-title">How It Works</div>
+    <div class="card-sub">Simple. Fast. Global.</div>
+    <div class="faq-item">
+      <div class="faq-q">📡 Where do alerts come from?</div>
+      <div class="faq-a">We monitor the official <strong>Pikud Ha'oref</strong> (Israel Home Front Command) API in real time — the same system powering Red Alert apps inside Israel. A fallback to <strong>tzevaadom.co.il</strong> ensures near-zero downtime.</div>
+    </div>
+    <div class="faq-item" style="margin-top:18px">
+      <div class="faq-q">🌍 Does it work outside Israel?</div>
+      <div class="faq-a">Yes — that's the entire point. Email and WhatsApp work everywhere. SMS uses Twilio, covering 180+ countries. Whether you're in New York, London, Melbourne, or Tel Aviv, you'll know the moment the sirens sound.</div>
+    </div>
+    <div class="faq-item" style="margin-top:18px">
+      <div class="faq-q">💬 How does WhatsApp work?</div>
+      <div class="faq-a">We use the Twilio WhatsApp API. During the free sandbox phase you send one opt-in message to activate — instructions are in your welcome message. In production, alerts arrive directly with no opt-in required.</div>
+    </div>
+    <div class="faq-item" style="margin-top:18px">
+      <div class="faq-q">📖 What should I say?</div>
+      <div class="faq-a">Any Tehillim you know. Popular choices: Chapters 20, 83, 121, or 130. Even a single verse said with full intention is powerful. Stop, take a breath, and connect.</div>
+    </div>
+    <div class="faq-item" style="margin-top:18px">
+      <div class="faq-q">🔕 How often will I get alerts?</div>
+      <div class="faq-a">Only during real rocket alert events. Rapid bursts of sirens within a short window are grouped into one notification so you're not overwhelmed.</div>
+    </div>
+    <div class="badge"><div class="badge-dot"></div>Live: oref.org.il · fallback: tzevaadom.co.il</div>
+  </div>
+
+  <!-- Dev Panel -->
+  <div class="dev-panel fade">
+    <div class="dev-label">⚙ Developer Panel — Simulate Alerts</div>
+    <button class="dev-btn" onclick="devAlert(['Tel Aviv','Rishon LeZion','Bat Yam'])">🚨 Tel Aviv Area</button>
+    <button class="dev-btn" onclick="devAlert(['Ashkelon','Sderot','Netivot','Kiryat Gat'])">🚨 South</button>
+    <button class="dev-btn" onclick="devAlert(['Haifa','Kiriat Ata','Nahariya'])">🚨 North</button>
+    <button class="dev-btn" onclick="devAlert(['Jerusalem'])">🚨 Jerusalem</button>
+    <button class="dev-btn clear" onclick="devClear()">✅ All Clear</button>
+    <div class="dev-note">Buttons call POST /api/test-alert → server polls Pikud Ha'oref every 5s, broadcasts via WebSocket, fires Email + SMS + WhatsApp to all subscribers.</div>
+  </div>
+
+  <footer class="fade">
+    <div>Built with intention. Powered by prayer.</div>
+    <div style="margin-top:4px"><span>Tehillim for Tilim</span> &nbsp;·&nbsp; תהילים לטילים</div>
+    <div style="margin-top:4px">עם ישראל חי</div>
+  </footer>
+
+</div>
+
+<script>
+/* ── Stars ── */
+(function(){
+  const c=document.getElementById('stars'), x=c.getContext('2d');
+  let S=[];
+  function resize(){ c.width=innerWidth; c.height=innerHeight; }
+  function init(){ S=[]; for(let i=0;i<140;i++) S.push({x:Math.random()*c.width,y:Math.random()*c.height,r:Math.random()*1.1+0.2,a:Math.random()*6,s:Math.random()*0.005+0.001}); }
+  function draw(){ x.clearRect(0,0,c.width,c.height); S.forEach(s=>{ s.a+=s.s; const a=(Math.sin(s.a)+1)/2*0.55+0.05; x.beginPath(); x.arc(s.x,s.y,s.r,0,Math.PI*2); x.fillStyle=`rgba(245,240,232,${a})`; x.fill(); }); requestAnimationFrame(draw); }
+  resize(); init(); draw();
+  addEventListener('resize',()=>{ resize(); init(); });
+})();
+
+/* ── Fade-in ── */
+const observer = new IntersectionObserver(entries => entries.forEach(e => { if(e.isIntersecting) e.target.classList.add('in'); }), { threshold: 0.1 });
+document.querySelectorAll('.fade').forEach(el => observer.observe(el));
+
+/* ── Counter ── */
+const COUNT_KEY = 't4t_count';
+let _displayed = null;
+
+function getLocal(){ const v=localStorage.getItem(COUNT_KEY); return v ? parseInt(v) : 0; }
+function setLocal(n){ localStorage.setItem(COUNT_KEY, String(n)); }
+
+function animateCount(target) {
+  const el = document.getElementById('sub-count');
+  const from = _displayed !== null ? _displayed : target;
+  if(target === _displayed) return;
+  _displayed = target;
+  setLocal(target);
+  el.classList.remove('pop'); void el.offsetWidth; el.classList.add('pop');
+  if(Math.abs(target - from) > 1 && from > 0) {
+    const steps=30, inc=(target-from)/steps; let i=0, cur=from;
+    const t=setInterval(()=>{ i++; cur+=inc; el.textContent=Math.round(i<steps?cur:target).toLocaleString(); if(i>=steps)clearInterval(t); }, 28);
+  } else {
+    el.textContent = target.toLocaleString();
+  }
+}
+
+function bumpCount(){ animateCount((_displayed||getLocal())+1); }
+
+// Init from localStorage immediately
+(function(){
+  const local = getLocal();
+  if(local > 0){ _displayed = local; document.getElementById('sub-count').textContent = local.toLocaleString(); }
+})();
+
+/* ── Form ── */
+let notifyMethod = null;
+const ALL_OPTS   = ['email','sms','whatsapp','email_sms','email_whatsapp','sms_whatsapp','all'];
+const needsEmail = m => ['email','email_sms','email_whatsapp','all'].includes(m);
+const needsPhone = m => ['sms','sms_whatsapp','email_sms','all'].includes(m);
+const needsWA    = m => ['whatsapp','sms_whatsapp','email_whatsapp','all'].includes(m);
+
+function pickMethod(m){
+  notifyMethod = m;
+  ALL_OPTS.forEach(k => { const el=document.getElementById('opt-'+k); if(el) el.classList.toggle('on', k===m); });
+  document.getElementById('f-email-wrap').classList.toggle('on', needsEmail(m));
+  document.getElementById('f-phone-wrap').classList.toggle('on', needsPhone(m));
+  document.getElementById('f-wa-wrap').classList.toggle('on', needsWA(m));
+  const hint=document.getElementById('phone-hint');
+  hint.style.display = (needsPhone(m) && needsWA(m)) ? 'block' : 'none';
+}
+
+async function handleSignup(){
+  const name  = document.getElementById('f-name').value.trim();
+  const email = document.getElementById('f-email').value.trim();
+  const phone = document.getElementById('f-phone').value.trim();
+  const wa    = document.getElementById('f-wa').value.trim();
+
+  if(!name)         { shake('f-name');  toast('Please enter your name','err'); return; }
+  if(!notifyMethod) { toast('Choose how to be notified','err'); return; }
+  if(needsEmail(notifyMethod) && !validEmail(email)) { shake('f-email'); toast('Please enter a valid email','err'); return; }
+  if(needsPhone(notifyMethod) && phone.length<7)     { shake('f-phone'); toast('Please enter a valid phone number','err'); return; }
+  if(needsWA(notifyMethod)    && wa.length<7)        { shake('f-wa');    toast('Please enter your WhatsApp number','err'); return; }
+
+  const btn = document.getElementById('signup-btn');
+  btn.disabled=true; btn.textContent='Signing up…';
+
+  try {
+    const res = await fetch('/api/subscribe', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ name, method:notifyMethod, email:email||null, phone:phone||null, whatsapp:wa||null }),
+    });
+    const data = await res.json();
+    if(!data.ok){ btn.disabled=false; btn.textContent='Sign Me Up · עם ישראל חי'; toast(data.error||'Something went wrong','err'); return; }
+    document.getElementById('form-body').style.display='none';
+    document.getElementById('success-state').classList.add('on');
+    toast("You're signed up! 🕊️",'ok');
+    bumpCount();
+    refreshStatus();
+  } catch(e) {
+    btn.disabled=false; btn.textContent='Sign Me Up · עם ישראל חי';
+    toast('Connection error — please try again','err');
+  }
+}
+
+function validEmail(e){ return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e); }
+function shake(id){ const el=document.getElementById(id); el.classList.remove('shake'); void el.offsetWidth; el.classList.add('shake'); setTimeout(()=>el.classList.remove('shake'),400); }
+
+/* ── WebSocket ── */
+let ws, wsRetries=0;
+
+function connectWS(){
+  const proto = location.protocol==='https:'?'wss':'ws';
+  ws = new WebSocket(`${proto}://${location.host}/ws`);
+  ws.onopen  = ()=>{ wsRetries=0; setStatus('green',"Monitoring Pikud Ha'oref — Live"); };
+  ws.onmessage = e => {
+    let msg; try{ msg=JSON.parse(e.data); }catch{ return; }
+    if(msg.event==='status')  updateStatus(msg.data);
+    if(msg.event==='alert')   triggerAlert(msg.data);
+    if(msg.event==='clear')   clearAlert();
+    if(msg.event==='dispatch_stats' && msg.data?.sent>0)
+      toast(`📨 Notified ${msg.data.sent} subscriber${msg.data.sent>1?'s':''}`, 'info');
+  };
+  ws.onclose = ()=>{ setStatus('grey','Reconnecting…'); const d=Math.min(1000*Math.pow(2,wsRetries++),30000); setTimeout(connectWS,d); };
+  ws.onerror = ()=>ws.close();
+}
+
+function updateStatus(d){
+  if(d.active) setStatus('red','🚨 Active Red Alert');
+  else setStatus('green',"Monitoring Pikud Ha'oref — Live");
+  if(d.subscribers !== undefined) animateCount(d.subscribers);
+}
+
+async function refreshStatus(){
+  try{ const d=await fetch('/api/status').then(r=>r.json()); updateStatus(d); }catch{}
+}
+
+/* ── Alert UI ── */
+function triggerAlert(payload){
+  const areas=(payload.areas||[]);
+  document.getElementById('alert-areas').textContent = areas.length ? 'Areas: '+areas.slice(0,6).join(', ')+(areas.length>6?` +${areas.length-6} more`:'') : '';
+  document.getElementById('alert-banner').classList.add('on');
+  setStatus('red','🚨 Active Red Alert');
+  playBeep();
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+function clearAlert(){
+  document.getElementById('alert-banner').classList.remove('on');
+  setStatus('green',"Monitoring Pikud Ha'oref — Live");
+  toast('✅ All clear','ok');
+}
+
+function setStatus(state, text){
+  document.getElementById('status-dot').className = 'dot'+(state==='red'?' red':state==='grey'?' grey':'');
+  document.getElementById('status-text').textContent = text;
+}
+
+function playBeep(){
+  try{
+    const ctx=new(window.AudioContext||window.webkitAudioContext)();
+    const osc=ctx.createOscillator(), gain=ctx.createGain();
+    osc.connect(gain); gain.connect(ctx.destination);
+    osc.type='sine'; osc.frequency.setValueAtTime(880,ctx.currentTime); osc.frequency.setValueAtTime(660,ctx.currentTime+0.2);
+    gain.gain.setValueAtTime(0.28,ctx.currentTime); gain.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+0.8);
+    osc.start(); osc.stop(ctx.currentTime+0.8);
+  }catch{}
+}
+
+/* ── Dev Panel ── */
+async function devAlert(areas){
+  try{
+    const r=await fetch('/api/test-alert',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({areas})});
+    const d=await r.json();
+    if(d.ok) toast(`🚨 Alert sent — notified ${d.notifyStats?.sent||0}`,'err');
+    else toast(d.error||'Error','err');
+  }catch{
+    triggerAlert({areas});
+    toast('🚨 Alert simulated (UI only)','info');
+  }
+}
+function devClear(){ clearAlert(); try{ fetch('/api/test-alert',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({areas:[],_clear:true})}); }catch{} }
+
+/* ── Toast ── */
+let _toastTimer;
+function toast(msg,type='ok'){ const el=document.getElementById('toast'); el.textContent=msg; el.className='on '+type; clearTimeout(_toastTimer); _toastTimer=setTimeout(()=>el.className='',3200); }
+
+/* ── Boot ── */
+connectWS();
+refreshStatus();
+</script>
+</body>
+</html>
