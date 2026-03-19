@@ -274,15 +274,10 @@
 
       <div class="field">
         <label class="field-label">Notify me via</label>
-        <div class="radio-group" style="margin-bottom:8px">
-          <div class="radio-opt" id="opt-email"    onclick="pickMethod('email')">✉️ &nbsp;Email</div>
-          <div class="radio-opt" id="opt-sms"      onclick="pickMethod('sms')">📱 &nbsp;SMS</div>
-          <div class="radio-opt" id="opt-whatsapp" onclick="pickMethod('whatsapp')">💬 &nbsp;WhatsApp</div>
-        </div>
         <div class="radio-group">
-          <div class="radio-opt combo-opt" id="opt-email_sms"      onclick="pickMethod('email_sms')">✉️+📱 Email &amp; SMS</div>
-          <div class="radio-opt combo-opt" id="opt-email_whatsapp" onclick="pickMethod('email_whatsapp')">✉️+💬 Email &amp; WA</div>
-          <div class="radio-opt combo-opt" id="opt-all"            onclick="pickMethod('all')">🔔 All Three</div>
+          <div class="radio-opt" id="opt-email"         onclick="pickMethod('email')">✉️ &nbsp;Email</div>
+          <div class="radio-opt" id="opt-whatsapp"      onclick="pickMethod('whatsapp')">💬 &nbsp;WhatsApp</div>
+          <div class="radio-opt combo-opt" id="opt-email_whatsapp" onclick="pickMethod('email_whatsapp')">✉️+💬 Email &amp; WhatsApp</div>
         </div>
       </div>
 
@@ -291,17 +286,11 @@
         <input type="email" id="f-email" placeholder="you@example.com" autocomplete="email" />
       </div>
 
-      <div class="field sub-field" id="f-phone-wrap">
-        <label class="field-label" for="f-phone">Phone Number (with country code)</label>
-        <input type="tel" id="f-phone" placeholder="+1 212 555 0100" autocomplete="tel" />
-        <div class="field-hint" id="phone-hint" style="display:none">Can be the same number as your WhatsApp below.</div>
-      </div>
-
       <div class="field sub-field" id="f-wa-wrap">
         <label class="field-label" for="f-wa">WhatsApp Number (with country code)</label>
         <input type="tel" id="f-wa" placeholder="+1 212 555 0100" autocomplete="tel" />
         <div class="wa-note">
-          💡 <strong>First time?</strong> Send <code>join &lt;your-word&gt;</code> to <strong>+1 415 523 8886</strong> on WhatsApp once to activate alerts.
+          💡 <strong>First time?</strong> Send <code>join tehillim</code> to <strong>+1 415 523 8886</strong> on WhatsApp once to activate alerts.
         </div>
       </div>
 
@@ -433,31 +422,25 @@ function bumpCount(){ animateCount((_displayed||getLocal())+1); }
 
 /* ── Form ── */
 let notifyMethod = null;
-const ALL_OPTS   = ['email','sms','whatsapp','email_sms','email_whatsapp','sms_whatsapp','all'];
-const needsEmail = m => ['email','email_sms','email_whatsapp','all'].includes(m);
-const needsPhone = m => ['sms','sms_whatsapp','email_sms','all'].includes(m);
-const needsWA    = m => ['whatsapp','sms_whatsapp','email_whatsapp','all'].includes(m);
+const ALL_OPTS   = ['email','whatsapp','email_whatsapp'];
+const needsEmail = m => ['email','email_whatsapp'].includes(m);
+const needsWA    = m => ['whatsapp','email_whatsapp'].includes(m);
 
 function pickMethod(m){
   notifyMethod = m;
   ALL_OPTS.forEach(k => { const el=document.getElementById('opt-'+k); if(el) el.classList.toggle('on', k===m); });
   document.getElementById('f-email-wrap').classList.toggle('on', needsEmail(m));
-  document.getElementById('f-phone-wrap').classList.toggle('on', needsPhone(m));
   document.getElementById('f-wa-wrap').classList.toggle('on', needsWA(m));
-  const hint=document.getElementById('phone-hint');
-  hint.style.display = (needsPhone(m) && needsWA(m)) ? 'block' : 'none';
 }
 
 async function handleSignup(){
   const name  = document.getElementById('f-name').value.trim();
   const email = document.getElementById('f-email').value.trim();
-  const phone = document.getElementById('f-phone').value.trim();
   const wa    = document.getElementById('f-wa').value.trim();
 
   if(!name)         { shake('f-name');  toast('Please enter your name','err'); return; }
   if(!notifyMethod) { toast('Choose how to be notified','err'); return; }
   if(needsEmail(notifyMethod) && !validEmail(email)) { shake('f-email'); toast('Please enter a valid email','err'); return; }
-  if(needsPhone(notifyMethod) && phone.length<7)     { shake('f-phone'); toast('Please enter a valid phone number','err'); return; }
   if(needsWA(notifyMethod)    && wa.length<7)        { shake('f-wa');    toast('Please enter your WhatsApp number','err'); return; }
 
   const btn = document.getElementById('signup-btn');
@@ -466,7 +449,7 @@ async function handleSignup(){
   try {
     const res = await fetch('/api/subscribe', {
       method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ name, method:notifyMethod, email:email||null, phone:phone||null, whatsapp:wa||null }),
+      body: JSON.stringify({ name, method:notifyMethod, email:email||null, phone:null, whatsapp:wa||null }),
     });
     const data = await res.json();
     if(!data.ok){ btn.disabled=false; btn.textContent='Sign Me Up · עם ישראל חי'; toast(data.error||'Something went wrong','err'); return; }
