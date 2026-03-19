@@ -77,11 +77,13 @@ poller.on('clear', () => {
 
 // ── REST API ──────────────────────────────────────────────
 
+const COUNT_SEED = parseInt(process.env.SUBSCRIBER_COUNT_SEED) || 0;
+
 // GET /api/status
 app.get('/api/status', (req, res) => {
   res.json({
     ...poller.getStatus(),
-    subscribers: db.count(),
+    subscribers: db.count() + COUNT_SEED,
     wsClients:   wss.clients.size,
     uptime:      process.uptime(),
   });
