@@ -6,6 +6,10 @@
   <title>Tehillim for Tilim — תהילים לטילים</title>
   <meta name="description" content="Get notified instantly when rockets are fired toward Israel. Stop and say Tehillim." />
   <link href="https://fonts.googleapis.com/css2?family=Frank+Ruhl+Libre:wght@300;400;500;700;900&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap" rel="stylesheet" />
+  <!-- Firebase (push notifications) -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging-compat.js"></script>
+  <script src="/firebase-config.js"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     :root {
@@ -162,6 +166,11 @@
       border-radius: 8px; font-size: 12px; color: rgba(245,240,232,0.7); line-height: 1.6;
     }
     .wa-note code { background: rgba(37,211,102,0.15); border-radius: 4px; padding: 1px 5px; font-size: 11px; color: #4ade80; }
+    .push-note {
+      margin-top: 10px; padding: 10px 14px;
+      background: rgba(201,168,76,0.07); border: 1px solid rgba(201,168,76,0.2);
+      border-radius: 8px; font-size: 12px; color: rgba(245,240,232,0.7); line-height: 1.6;
+    }
 
     .btn-primary {
       width: 100%; background: linear-gradient(135deg, #d4a93c 0%, #9a6e18 100%);
@@ -267,9 +276,13 @@
       <div class="field">
         <label class="field-label">Notify me via</label>
         <div class="radio-group">
-          <div class="radio-opt" id="opt-email"         onclick="pickMethod('email')">✉️ &nbsp;Email</div>
-          <div class="radio-opt" id="opt-whatsapp"      onclick="pickMethod('whatsapp')">💬 &nbsp;WhatsApp</div>
-          <div class="radio-opt combo-opt" id="opt-email_whatsapp" onclick="pickMethod('email_whatsapp')">✉️+💬 Email &amp; WhatsApp</div>
+          <div class="radio-opt" id="opt-email"    onclick="pickMethod('email')">✉️ &nbsp;Email</div>
+          <div class="radio-opt" id="opt-whatsapp" onclick="pickMethod('whatsapp')">💬 &nbsp;WhatsApp</div>
+          <div class="radio-opt" id="opt-push"     onclick="pickMethod('push')">🔔 &nbsp;Push</div>
+          <div class="radio-opt combo-opt" id="opt-email_whatsapp"      onclick="pickMethod('email_whatsapp')">✉️+💬 Email &amp; WhatsApp</div>
+          <div class="radio-opt combo-opt" id="opt-email_push"          onclick="pickMethod('email_push')">✉️+🔔 Email &amp; Push</div>
+          <div class="radio-opt combo-opt" id="opt-whatsapp_push"       onclick="pickMethod('whatsapp_push')">💬+🔔 WhatsApp &amp; Push</div>
+          <div class="radio-opt combo-opt" id="opt-email_whatsapp_push" onclick="pickMethod('email_whatsapp_push')">✉️+💬+🔔 All Three</div>
         </div>
       </div>
 
@@ -283,6 +296,12 @@
         <input type="tel" id="f-wa" placeholder="+1 212 555 0100" autocomplete="tel" />
         <div class="wa-note">
           💡 <strong>First time?</strong> Send <code>join tehillim</code> to <strong>+1 415 523 8886</strong> on WhatsApp once to activate alerts.
+        </div>
+      </div>
+
+      <div class="field sub-field" id="f-push-wrap">
+        <div class="push-note">
+          🔔 <strong>Browser push notifications</strong> — you'll be asked to allow notifications after signing up. Works on Chrome, Firefox, Edge, and Android. Not supported on iOS Safari.
         </div>
       </div>
 
@@ -403,15 +422,17 @@ function bumpCount(){ animateCount((_displayed||getLocal())+1); }
 
 /* ── Form ── */
 let notifyMethod = null;
-const ALL_OPTS   = ['email','whatsapp','email_whatsapp'];
-const needsEmail = m => ['email','email_whatsapp'].includes(m);
-const needsWA    = m => ['whatsapp','email_whatsapp'].includes(m);
+const ALL_OPTS   = ['email','whatsapp','push','email_whatsapp','email_push','whatsapp_push','email_whatsapp_push'];
+const needsEmail = m => ['email','email_whatsapp','email_push','email_whatsapp_push'].includes(m);
+const needsWA    = m => ['whatsapp','email_whatsapp','whatsapp_push','email_whatsapp_push'].includes(m);
+const needsPush  = m => ['push','email_push','whatsapp_push','email_whatsapp_push'].includes(m);
 
 function pickMethod(m){
   notifyMethod = m;
   ALL_OPTS.forEach(k => { const el=document.getElementById('opt-'+k); if(el) el.classList.toggle('on', k===m); });
   document.getElementById('f-email-wrap').classList.toggle('on', needsEmail(m));
   document.getElementById('f-wa-wrap').classList.toggle('on', needsWA(m));
+  document.getElementById('f-push-wrap').classList.toggle('on', needsPush(m));
 }
 
 async function handleSignup(){
@@ -439,6 +460,7 @@ async function handleSignup(){
     toast("You're signed up! 🕊️",'ok');
     bumpCount();
     refreshStatus();
+    if(needsPush(notifyMethod)) requestPush(data.id);
   } catch(e) {
     btn.disabled=false; btn.textContent='Sign Me Up · עם ישראל חי';
     toast('Connection error — please try again','err');
@@ -512,6 +534,34 @@ function playBeep(){
 /* ── Toast ── */
 let _toastTimer;
 function toast(msg,type='ok'){ const el=document.getElementById('toast'); el.textContent=msg; el.className='on '+type; clearTimeout(_toastTimer); _toastTimer=setTimeout(()=>el.className='',3200); }
+
+/* ── Push Notifications ── */
+async function requestPush(subscriberId) {
+  if (!('Notification' in window) || !('serviceWorker' in navigator)) {
+    toast('Push not supported in this browser', 'info'); return;
+  }
+  if (!self.FIREBASE_CONFIG || !self.FIREBASE_CONFIG.projectId) {
+    console.warn('[Push] Firebase not configured'); return;
+  }
+  try {
+    const permission = await Notification.requestPermission();
+    if (permission !== 'granted') {
+      toast('Push permission denied — you can enable it in browser settings', 'info'); return;
+    }
+    const reg = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
+    if (!firebase.apps.length) firebase.initializeApp(self.FIREBASE_CONFIG);
+    const messaging = firebase.messaging();
+    const token = await messaging.getToken({ vapidKey: self.FIREBASE_VAPID_KEY, serviceWorkerRegistration: reg });
+    await fetch('/api/push-token', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ subscriberId, token }),
+    });
+    toast('Push notifications enabled! 🔔', 'ok');
+  } catch(e) {
+    console.error('[Push]', e);
+    toast('Could not enable push — check browser settings', 'info');
+  }
+}
 
 /* ── Boot ── */
 connectWS();

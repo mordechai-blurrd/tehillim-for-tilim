@@ -5,14 +5,15 @@
  *
  * Schema per subscriber:
  * {
- *   id:        string  (uuid)
- *   name:      string
- *   method:    'email' | 'sms' | 'whatsapp' | 'sms_whatsapp' | 'email_sms' | 'email_whatsapp' | 'all'
- *   email:     string | null
- *   phone:     string | null   (E.164 — used for SMS)
- *   whatsapp:  string | null   (E.164 — used for WhatsApp; often same as phone)
- *   active:    boolean
- *   createdAt: ISO string
+ *   id:         string  (uuid)
+ *   name:       string
+ *   method:     see VALID_METHODS below
+ *   email:      string | null
+ *   phone:      string | null   (E.164 — used for SMS)
+ *   whatsapp:   string | null   (E.164 — used for WhatsApp; often same as phone)
+ *   pushTokens: string[]        (FCM tokens, one per device)
+ *   active:     boolean
+ *   createdAt:  ISO string
  *   notifiedAt: ISO string | null
  * }
  */
@@ -27,7 +28,11 @@ const DATA_DIR = fs.existsSync('/app/data') ? '/app/data' : __dirname;
 const DB_PATH  = path.join(DATA_DIR, 'subscribers.json');
 console.log(`[DB] Store: ${DB_PATH}`);
 
-const VALID_METHODS = ['email','sms','whatsapp','sms_whatsapp','email_sms','email_whatsapp','all'];
+const VALID_METHODS = [
+  'email', 'sms', 'whatsapp', 'push',
+  'sms_whatsapp', 'email_sms', 'email_whatsapp', 'email_push',
+  'whatsapp_push', 'email_whatsapp_push', 'all',
+];
 
 function _read() {
   try {
@@ -66,6 +71,7 @@ const db = {
       email:      email    ? email.trim().toLowerCase() : null,
       phone:      phone    ? normalizePhone(phone)      : null,
       whatsapp:   resolvedWA,
+      pushTokens: [],
       active:     true,
       createdAt:  new Date().toISOString(),
       notifiedAt: null,
@@ -96,10 +102,53 @@ const db = {
   },
 
   all() { return _read(); },
+
+  // ── Push token management ────────────────────────────────
+
+  addPushToken(subscriberId, token) {
+    const subs = _read();
+    const idx  = subs.findIndex(s => s.id === subscriberId);
+    if (idx === -1) return false;
+    if (!subs[idx].pushTokens) subs[idx].pushTokens = [];
+    if (!subs[idx].pushTokens.includes(token)) {
+      subs[idx].pushTokens.push(token);
+      _write(subs);
+      console.log(`[DB] Push token saved for ${subs[idx].name}`);
+    }
+    return true;
+  },
+
+  getAllPushTokens() {
+    const subs = _read().filter(s => s.active);
+    const tokens = new Set();
+    subs.forEach(s => {
+      if (wantsPush(s.method) && Array.isArray(s.pushTokens)) {
+        s.pushTokens.forEach(t => tokens.add(t));
+      }
+    });
+    return [...tokens];
+  },
+
+  removePushTokens(expiredTokens) {
+    const subs    = _read();
+    let changed   = false;
+    subs.forEach(s => {
+      if (!Array.isArray(s.pushTokens)) return;
+      const before = s.pushTokens.length;
+      s.pushTokens = s.pushTokens.filter(t => !expiredTokens.includes(t));
+      if (s.pushTokens.length !== before) changed = true;
+    });
+    if (changed) _write(subs);
+  },
 };
 
 function needsWhatsapp(method) {
-  return ['whatsapp','sms_whatsapp','email_whatsapp','all'].includes(method);
+  return ['whatsapp','sms_whatsapp','email_whatsapp','all',
+          'whatsapp_push','email_whatsapp_push'].includes(method);
+}
+
+function wantsPush(method) {
+  return ['push','email_push','whatsapp_push','email_whatsapp_push'].includes(method);
 }
 
 function normalizePhone(phone) {

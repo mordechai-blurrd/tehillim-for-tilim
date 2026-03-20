@@ -5,6 +5,8 @@
  * Routes:
  *   GET  /api/status          — Current alert status + subscriber count
  *   POST /api/subscribe       — Sign up for notifications
+ *   POST /api/push-token      — Save FCM push token for a subscriber
+ *   GET  /firebase-config.js  — Public Firebase client config (served as JS)
  *   GET  /unsubscribe/:id     — One-click unsubscribe
  *   GET  /api/admin           — Admin view (subscriber list + alert log)
  *   POST /api/test-alert      — Manually trigger a test alert (dev only)
@@ -52,10 +54,9 @@ function broadcast(event, data) {
 
 wss.on('connection', (ws) => {
   console.log(`[WS] Client connected (total: ${wss.clients.size})`);
-  // Send current status immediately on connect
   ws.send(JSON.stringify({
     event: 'status',
-    data:  { ...poller.getStatus(), subscribers: db.count() },
+    data:  { ...poller.getStatus(), subscribers: db.count() + COUNT_SEED },
     ts:    new Date().toISOString(),
   }));
   ws.on('close', () => console.log(`[WS] Client disconnected (total: ${wss.clients.size})`));
@@ -89,14 +90,33 @@ app.get('/api/status', (req, res) => {
   });
 });
 
+// GET /firebase-config.js — serves public Firebase client config as a JS file
+// Imported by firebase-messaging-sw.js (service worker) via importScripts.
+app.get('/firebase-config.js', (req, res) => {
+  res.type('application/javascript');
+  res.send(
+    `self.FIREBASE_CONFIG=${JSON.stringify({
+      apiKey:            process.env.FIREBASE_API_KEY            || '',
+      authDomain:        process.env.FIREBASE_AUTH_DOMAIN        || '',
+      projectId:         process.env.FIREBASE_PROJECT_ID         || '',
+      messagingSenderId: process.env.FIREBASE_MESSAGING_SENDER_ID || '',
+      appId:             process.env.FIREBASE_APP_ID             || '',
+    })};self.FIREBASE_VAPID_KEY=${JSON.stringify(process.env.FIREBASE_VAPID_KEY || '')};`
+  );
+});
+
 // POST /api/subscribe
 app.post('/api/subscribe', async (req, res) => {
   const { name, method, email, phone, whatsapp } = req.body;
 
-  const VALID_METHODS = ['email','sms','whatsapp','sms_whatsapp','email_sms','email_whatsapp','all'];
-  const needsEmail = m => ['email','email_sms','email_whatsapp','all'].includes(m);
+  const VALID_METHODS = [
+    'email', 'sms', 'whatsapp', 'push',
+    'sms_whatsapp', 'email_sms', 'email_whatsapp', 'email_push',
+    'whatsapp_push', 'email_whatsapp_push', 'all',
+  ];
+  const needsEmail = m => ['email','email_sms','email_whatsapp','email_push','email_whatsapp_push','all'].includes(m);
   const needsPhone = m => ['sms','sms_whatsapp','email_sms','all'].includes(m);
-  const needsWA    = m => ['whatsapp','sms_whatsapp','email_whatsapp','all'].includes(m);
+  const needsWA    = m => ['whatsapp','sms_whatsapp','email_whatsapp','whatsapp_push','email_whatsapp_push','all'].includes(m);
 
   if (!name || typeof name !== 'string' || name.trim().length < 1)
     return res.status(400).json({ ok: false, error: 'Name is required.' });
@@ -115,14 +135,23 @@ app.post('/api/subscribe', async (req, res) => {
   if (!result.ok && result.error === 'already_exists')
     return res.status(409).json({ ok: false, error: 'You\'re already signed up!' });
 
-  // Fire welcome email async (don't block response)
   const sub = db.all().find(s => s.id === result.id);
   if (sub) sendWelcome(sub).catch(() => {});
 
   res.json({ ok: true, id: result.id, message: 'Signed up successfully. Am Yisrael Chai! 🕊️' });
 });
 
-// GET /unsubscribe/:id  (one-click from email/SMS)
+// POST /api/push-token — register an FCM token for a subscriber
+app.post('/api/push-token', (req, res) => {
+  const { subscriberId, token } = req.body;
+  if (!subscriberId || !token)
+    return res.status(400).json({ ok: false, error: 'subscriberId and token required' });
+  const ok = db.addPushToken(subscriberId, token);
+  if (!ok) return res.status(404).json({ ok: false, error: 'Subscriber not found' });
+  res.json({ ok: true });
+});
+
+// GET /unsubscribe/:id  (one-click from email/WhatsApp)
 app.get('/unsubscribe/:id', (req, res) => {
   const removed = db.remove(req.params.id);
   res.send(`
@@ -161,14 +190,14 @@ app.get('/api/admin', (req, res) => {
   }
   const subs = db.all();
   res.json({
-    totalSubscribers: subs.length,
+    totalSubscribers:  subs.length,
     activeSubscribers: subs.filter(s => s.active).length,
-    recentAlerts: alertLog.slice(0, 10),
+    recentAlerts:      alertLog.slice(0, 10),
     subscribers: IS_DEV ? subs : subs.map(s => ({ id: s.id, name: s.name, method: s.method, createdAt: s.createdAt, active: s.active })),
   });
 });
 
-// POST /api/test-alert  (dev only)
+// POST /api/test-alert  (dev / admin only)
 app.post('/api/test-alert', async (req, res) => {
   if (!IS_DEV && !req.headers['x-admin-key']) {
     return res.status(403).json({ ok: false, error: 'Forbidden' });
@@ -199,19 +228,25 @@ app.get('/{*path}', (req, res) => {
 function checkConfig() {
   const missing = [];
 
-  if (!process.env.EMAILJS_PUBLIC_KEY)           missing.push('EMAILJS_PUBLIC_KEY — email notifications disabled');
-  if (!process.env.EMAILJS_PRIVATE_KEY)          missing.push('EMAILJS_PRIVATE_KEY — email notifications disabled');
-  if (!process.env.EMAILJS_SERVICE_ID)           missing.push('EMAILJS_SERVICE_ID — email notifications disabled');
-  if (!process.env.EMAILJS_TEMPLATE_ID)          missing.push('EMAILJS_TEMPLATE_ID — email notifications disabled');
-  if (!process.env.EMAILJS_WELCOME_TEMPLATE_ID)  missing.push('EMAILJS_WELCOME_TEMPLATE_ID — welcome emails will use alert template as fallback');
+  if (!process.env.EMAILJS_PUBLIC_KEY)            missing.push('EMAILJS_PUBLIC_KEY — email notifications disabled');
+  if (!process.env.EMAILJS_PRIVATE_KEY)           missing.push('EMAILJS_PRIVATE_KEY — email notifications disabled');
+  if (!process.env.EMAILJS_SERVICE_ID)            missing.push('EMAILJS_SERVICE_ID — email notifications disabled');
+  if (!process.env.EMAILJS_TEMPLATE_ID)           missing.push('EMAILJS_TEMPLATE_ID — email notifications disabled');
+  if (!process.env.EMAILJS_WELCOME_TEMPLATE_ID)   missing.push('EMAILJS_WELCOME_TEMPLATE_ID — welcome emails will use alert template as fallback');
 
   const twilioConfigured = process.env.TWILIO_ACCOUNT_SID && !process.env.TWILIO_ACCOUNT_SID.startsWith('ACx');
-  if (!twilioConfigured)                         missing.push('TWILIO_ACCOUNT_SID / TWILIO_AUTH_TOKEN — SMS + WhatsApp disabled');
-  if (twilioConfigured && !process.env.TWILIO_FROM_NUMBER)   missing.push('TWILIO_FROM_NUMBER — SMS disabled');
-  if (twilioConfigured && !process.env.TWILIO_WHATSAPP_FROM) missing.push('TWILIO_WHATSAPP_FROM — WhatsApp disabled');
+  if (!twilioConfigured)                          missing.push('TWILIO_ACCOUNT_SID / TWILIO_AUTH_TOKEN — SMS + WhatsApp disabled');
+  if (twilioConfigured && !process.env.TWILIO_FROM_NUMBER)    missing.push('TWILIO_FROM_NUMBER — SMS disabled');
+  if (twilioConfigured && !process.env.TWILIO_WHATSAPP_FROM)  missing.push('TWILIO_WHATSAPP_FROM — WhatsApp disabled');
 
-  if (!process.env.BASE_URL)                     missing.push('BASE_URL — unsubscribe links will fall back to http://localhost:3000');
-  if (!process.env.ADMIN_KEY)                    missing.push('ADMIN_KEY — /api/admin is unprotected');
+  const firebaseConfigured = process.env.FIREBASE_PROJECT_ID &&
+                             process.env.FIREBASE_PRIVATE_KEY &&
+                             process.env.FIREBASE_CLIENT_EMAIL;
+  if (!firebaseConfigured)                        missing.push('FIREBASE_PROJECT_ID / FIREBASE_PRIVATE_KEY / FIREBASE_CLIENT_EMAIL — push notifications disabled');
+  if (firebaseConfigured && !process.env.FIREBASE_VAPID_KEY)  missing.push('FIREBASE_VAPID_KEY — browser push subscription will fail');
+
+  if (!process.env.BASE_URL)                      missing.push('BASE_URL — unsubscribe links will fall back to http://localhost:3000');
+  if (!process.env.ADMIN_KEY)                     missing.push('ADMIN_KEY — /api/admin is unprotected');
 
   if (missing.length) {
     console.warn('\n⚠️  Missing configuration — some features are disabled:');

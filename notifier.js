@@ -14,7 +14,8 @@
  */
 
 require('dotenv').config();
-const db = require('./db');
+const db      = require('./db');
+const webpush = require('./webpush');
 
 // ── EmailJS ────────────────────────────────────────────────
 let emailjs;
@@ -53,8 +54,15 @@ const recentlySent = new Map();
 
 // ── Main dispatch ──────────────────────────────────────────
 async function dispatch(alertPayload) {
+  // Fire push notifications concurrently — they're token-based, not per-subscriber
+  const pushPromise = webpush.dispatch(alertPayload);
+
   const subscribers = db.getActive();
-  if (!subscribers.length) { console.log('[Notifier] No subscribers.'); return { sent: 0, skipped: 0, errors: 0 }; }
+  if (!subscribers.length) {
+    console.log('[Notifier] No subscribers.');
+    await pushPromise;
+    return { sent: 0, skipped: 0, errors: 0 };
+  }
 
   const areas   = alertPayload.areas || [];
   const areaStr = areas.length
