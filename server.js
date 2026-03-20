@@ -35,6 +35,7 @@ const IS_DEV = process.env.NODE_ENV !== 'production';
 // ── Middleware ────────────────────────────────────────────
 app.use(cors());
 app.use(express.json());
+app.use(express.urlencoded({ extended: false })); // for Twilio webhook (form-encoded)
 app.use(express.static(path.join(__dirname, 'public')));
 
 // ── Alert Log (in-memory, last 50 events) ─────────────────
@@ -151,34 +152,45 @@ app.post('/api/push-token', (req, res) => {
   res.json({ ok: true });
 });
 
-// GET /unsubscribe/:id  (one-click from email/WhatsApp)
+// GET /unsubscribe/:id  (one-click from email/WhatsApp — redirects to the unsubscribe page)
 app.get('/unsubscribe/:id', (req, res) => {
-  const removed = db.remove(req.params.id);
-  res.send(`
-    <!DOCTYPE html><html><head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width,initial-scale=1">
-    <title>Unsubscribed — Tehillim for Tilim</title>
-    <style>
-      body { font-family: Georgia, serif; background: #0b1120; color: #f5f0e8;
-             display: flex; align-items: center; justify-content: center;
-             min-height: 100vh; margin: 0; text-align: center; padding: 24px; }
-      h1 { color: #c9a84c; font-size: 28px; margin-bottom: 12px; }
-      p  { color: #8b96a8; font-size: 16px; line-height: 1.6; }
-      a  { color: #c9a84c; }
-    </style>
-    </head><body>
-    <div>
-      <div style="font-size:48px;margin-bottom:16px">🕊️</div>
-      <h1>${removed ? 'You\'ve been unsubscribed' : 'Link already used'}</h1>
-      <p>${removed
-        ? 'You will no longer receive Tehillim for Tilim alerts.<br>We hope you\'ll rejoin us soon.'
-        : 'This unsubscribe link has already been used or is invalid.'
-      }</p>
-      <p style="margin-top:24px"><a href="/">Return to Tehillim for Tilim →</a></p>
-    </div>
-    </body></html>
-  `);
+  res.redirect(`/unsubscribe?id=${encodeURIComponent(req.params.id)}`);
+});
+
+// GET /unsubscribe — dedicated unsubscribe page (handles ?id, ?email, ?phone)
+app.get('/unsubscribe', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'unsubscribe.html'));
+});
+
+// POST /api/unsubscribe — unsubscribe by id, email, or phone number
+app.post('/api/unsubscribe', (req, res) => {
+  const { id, email, phone } = req.body;
+  let removed = false;
+  if (id)         removed = db.remove(id);
+  else if (email) removed = db.removeByEmail(email);
+  else if (phone) removed = db.removeByPhone(phone);
+  else return res.status(400).json({ ok: false, error: 'id, email, or phone required' });
+  res.json({ ok: removed });
+});
+
+// DELETE /api/push-token — revoke an FCM token (browser-initiated unsubscribe)
+app.delete('/api/push-token', (req, res) => {
+  const { token } = req.body;
+  if (!token) return res.status(400).json({ ok: false, error: 'token required' });
+  db.removePushTokens([token]);
+  console.log('[Push] Token revoked by user');
+  res.json({ ok: true });
+});
+
+// POST /api/sms-webhook — Twilio inbound SMS (handles STOP / UNSUBSCRIBE replies)
+app.post('/api/sms-webhook', (req, res) => {
+  const body = (req.body.Body || '').trim().toUpperCase();
+  const from = req.body.From || '';
+  if (['STOP', 'UNSUBSCRIBE', 'CANCEL', 'END', 'QUIT'].includes(body)) {
+    const removed = db.removeByPhone(from);
+    console.log(`[SMS] STOP from ${from} — ${removed ? 'unsubscribed' : 'not found'}`);
+  }
+  res.type('text/xml').send('<Response></Response>'); // TwiML empty response
 });
 
 // GET /api/admin

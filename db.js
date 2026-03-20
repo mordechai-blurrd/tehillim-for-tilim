@@ -103,6 +103,30 @@ const db = {
 
   all() { return _read(); },
 
+  removeByEmail(email) {
+    const normalized = email.trim().toLowerCase();
+    const subs = _read();
+    const idx  = subs.findIndex(s => s.active && s.email === normalized);
+    if (idx === -1) return false;
+    subs[idx].active = false;
+    _write(subs);
+    console.log(`[DB] Unsubscribed by email: ${normalized}`);
+    return true;
+  },
+
+  removeByPhone(phone) {
+    try {
+      const normalized = normalizePhone(phone);
+      const subs = _read();
+      const idx  = subs.findIndex(s => s.active && (s.phone === normalized || s.whatsapp === normalized));
+      if (idx === -1) return false;
+      subs[idx].active = false;
+      _write(subs);
+      console.log(`[DB] Unsubscribed by phone: ${normalized}`);
+      return true;
+    } catch { return false; }
+  },
+
   // ── Push token management ────────────────────────────────
 
   addPushToken(subscriberId, token) {

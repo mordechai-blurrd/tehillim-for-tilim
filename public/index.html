@@ -362,10 +362,20 @@
     <div class="badge"><div class="badge-dot"></div>Live: oref.org.il · fallback: tzevaadom.co.il</div>
   </div>
 
+  <!-- Manage Notifications (shown only when push permission is granted) -->
+  <div id="manage-push-wrap" style="display:none; text-align:center; margin-top:8px; margin-bottom:16px;">
+    <button id="manage-push-btn" onclick="revokePush()"
+      style="background:none; border:1px solid rgba(122,135,153,0.3); border-radius:20px; color:var(--muted);
+             font-family:var(--font-b); font-size:12px; padding:7px 16px; cursor:pointer; transition:border-color 0.2s, color 0.2s;">
+      🔔 Manage Push Notifications
+    </button>
+  </div>
+
   <footer class="fade">
     <div>Built with intention. Powered by prayer.</div>
     <div style="margin-top:4px"><span>Tehillim for Tilim</span> &nbsp;·&nbsp; תהילים לטילים</div>
     <div style="margin-top:4px">עם ישראל חי</div>
+    <div style="margin-top:10px"><a href="/unsubscribe" style="color:var(--gold-dk); font-size:11px; text-decoration:none; letter-spacing:0.06em;">Manage / Unsubscribe</a></div>
   </footer>
 
 </div>
@@ -589,6 +599,8 @@ async function requestPush(subscriberId) {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ subscriberId, token }),
     });
+    localStorage.setItem('t4t_push_token', token);
+    showManagePushBtn(true);
     toast('Push notifications enabled! 🔔', 'ok');
   } catch(e) {
     console.error('[Push]', e);
@@ -596,11 +608,38 @@ async function requestPush(subscriberId) {
   }
 }
 
+/* ── Manage Push ── */
+function showManagePushBtn(visible) {
+  document.getElementById('manage-push-wrap').style.display = visible ? 'block' : 'none';
+}
+
+async function revokePush() {
+  const token = localStorage.getItem('t4t_push_token');
+  if (token) {
+    await fetch('/api/push-token', {
+      method: 'DELETE', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token }),
+    }).catch(() => {});
+    localStorage.removeItem('t4t_push_token');
+  }
+  // Revoke SW registration so no further background pushes
+  if ('serviceWorker' in navigator) {
+    const reg = await navigator.serviceWorker.getRegistration('/firebase-messaging-sw.js').catch(() => null);
+    if (reg) await reg.unregister().catch(() => {});
+  }
+  showManagePushBtn(false);
+  toast('Push notifications disabled', 'ok');
+}
+
 /* ── Boot ── */
 connectWS();
 refreshStatus();
 // Re-init foreground push handler for returning visitors who already granted permission
-if (typeof Notification !== 'undefined' && Notification.permission === 'granted') initForegroundPush();
+if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
+  initForegroundPush();
+  // Show manage button only if we have a stored token (i.e. user actively signed up for push)
+  if (localStorage.getItem('t4t_push_token')) showManagePushBtn(true);
+}
 </script>
 </body>
 </html>

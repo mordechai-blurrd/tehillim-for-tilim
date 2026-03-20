@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Unsubscribe — Tehillim for Tilim</title>
+  <link href="https://fonts.googleapis.com/css2?family=Frank+Ruhl+Libre:wght@300;400;700;900&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --navy:    #0b1120;
+      --surface: #151e30;
+      --border:  rgba(255,255,255,0.07);
+      --gold:    #c9a84c;
+      --gold-lt: #e8c97a;
+      --gold-dk: #7a5e1e;
+      --red:     #e63946;
+      --green:   #4ade80;
+      --white:   #f5f0e8;
+      --muted:   #7a8799;
+      --radius:  16px;
+      --font-h:  'Frank Ruhl Libre', Georgia, serif;
+      --font-b:  'DM Sans', sans-serif;
+    }
+    body {
+      background: var(--navy); color: var(--white);
+      font-family: var(--font-b); font-weight: 300;
+      min-height: 100vh; display: flex; align-items: center; justify-content: center;
+      padding: 32px 20px;
+    }
+    body::before {
+      content: ''; position: fixed; inset: 0; z-index: 0;
+      background: radial-gradient(ellipse 80% 50% at 50% -5%, rgba(201,168,76,0.08) 0%, transparent 55%);
+      pointer-events: none;
+    }
+    .page { position: relative; z-index: 1; width: 100%; max-width: 480px; text-align: center; }
+
+    .logo { font-family: var(--font-h); font-size: 32px; font-weight: 900; margin-bottom: 32px;
+      background: linear-gradient(150deg, var(--gold-lt) 0%, var(--gold) 55%, #a07828 100%);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 40px 32px; }
+    @media(max-width:480px){ .card { padding: 28px 20px; } }
+
+    .icon  { font-size: 52px; margin-bottom: 16px; }
+    .title { font-family: var(--font-h); font-size: 26px; font-weight: 700; color: var(--gold-lt); margin-bottom: 10px; }
+    .sub   { font-size: 15px; color: var(--muted); line-height: 1.65; }
+
+    .divider { height: 1px; background: var(--border); margin: 28px 0; }
+
+    /* Form */
+    .field-label { display: block; font-size: 11px; font-weight: 500; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; text-align: left; }
+    .field { margin-bottom: 14px; }
+    input[type=email], input[type=tel] {
+      width: 100%; background: rgba(255,255,255,0.04); border: 1px solid var(--border);
+      border-radius: 9px; color: var(--white); font-family: var(--font-b);
+      font-size: 15px; font-weight: 300; padding: 13px 16px;
+      outline: none; transition: border-color 0.2s, background 0.2s;
+    }
+    input::placeholder { color: rgba(122,135,153,0.5); }
+    input:focus { border-color: var(--gold); background: rgba(201,168,76,0.05); }
+
+    .tab-row { display: flex; gap: 8px; margin-bottom: 18px; }
+    .tab { flex: 1; padding: 9px; border: 1px solid var(--border); border-radius: 8px;
+      background: rgba(255,255,255,0.03); color: var(--muted); font-size: 13px;
+      cursor: pointer; transition: all 0.15s; font-family: var(--font-b); }
+    .tab.on { border-color: var(--gold); background: rgba(201,168,76,0.1); color: var(--gold-lt); }
+
+    .btn { width: 100%; background: linear-gradient(135deg, #d4a93c 0%, #9a6e18 100%);
+      border: none; border-radius: 9px; color: #0b1120; font-family: var(--font-h);
+      font-size: 16px; font-weight: 700; padding: 13px 24px; cursor: pointer;
+      margin-top: 4px; transition: opacity 0.2s, transform 0.15s; }
+    .btn:hover { opacity: 0.9; transform: translateY(-1px); }
+    .btn:disabled { opacity: 0.35; cursor: not-allowed; transform: none; }
+
+    .err-msg { color: #ff6b74; font-size: 13px; margin-top: 10px; }
+
+    .back-link { display: inline-block; margin-top: 24px; color: var(--gold); font-size: 14px; text-decoration: none; }
+    .back-link:hover { text-decoration: underline; }
+
+    /* States */
+    [data-state] { display: none; }
+    [data-state].on { display: block; }
+  </style>
+</head>
+<body>
+<div class="page">
+  <div class="logo">תהילים לטילים</div>
+
+  <div class="card">
+
+    <!-- Loading -->
+    <div data-state="loading" id="s-loading">
+      <div class="icon">⏳</div>
+      <div class="title">One moment…</div>
+    </div>
+
+    <!-- Success -->
+    <div data-state="success" id="s-success">
+      <div class="icon">🕊️</div>
+      <div class="title">You've been unsubscribed</div>
+      <div class="sub">You will no longer receive Tehillim for Tilim alerts.<br>We hope you'll rejoin us soon.</div>
+    </div>
+
+    <!-- Not found -->
+    <div data-state="notfound" id="s-notfound">
+      <div class="icon">🔍</div>
+      <div class="title">Not found</div>
+      <div class="sub">We couldn't find an active subscription matching those details.<br>You may have already unsubscribed.</div>
+    </div>
+
+    <!-- Form -->
+    <div data-state="form" id="s-form">
+      <div class="icon">🔕</div>
+      <div class="title">Unsubscribe</div>
+      <div class="sub" style="margin-bottom:24px">Enter the email address or phone number you signed up with.</div>
+
+      <div class="tab-row">
+        <button class="tab on" id="tab-email" onclick="switchTab('email')">✉️ Email</button>
+        <button class="tab" id="tab-phone" onclick="switchTab('phone')">📱 Phone</button>
+      </div>
+
+      <div id="field-email" class="field">
+        <label class="field-label" for="f-email">Email Address</label>
+        <input type="email" id="f-email" placeholder="you@example.com" autocomplete="email" />
+      </div>
+      <div id="field-phone" class="field" style="display:none">
+        <label class="field-label" for="f-phone">Phone / WhatsApp Number</label>
+        <input type="tel" id="f-phone" placeholder="+1 212 555 0100" autocomplete="tel" />
+      </div>
+
+      <button class="btn" id="unsub-btn" onclick="submitForm()">Unsubscribe Me</button>
+      <div class="err-msg" id="err-msg"></div>
+    </div>
+
+  </div>
+
+  <a href="/" class="back-link">← Return to Tehillim for Tilim</a>
+</div>
+
+<script>
+function show(id) {
+  document.querySelectorAll('[data-state]').forEach(el => el.classList.remove('on'));
+  document.getElementById(id).classList.add('on');
+}
+
+let activeTab = 'email';
+
+function switchTab(tab) {
+  activeTab = tab;
+  document.getElementById('tab-email').classList.toggle('on', tab === 'email');
+  document.getElementById('tab-phone').classList.toggle('on', tab === 'phone');
+  document.getElementById('field-email').style.display = tab === 'email' ? 'block' : 'none';
+  document.getElementById('field-phone').style.display = tab === 'phone' ? 'block' : 'none';
+}
+
+async function unsubscribe(payload) {
+  const res  = await fetch('/api/unsubscribe', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+  const data = await res.json();
+  show(data.ok ? 's-success' : 's-notfound');
+}
+
+async function submitForm() {
+  const btn = document.getElementById('unsub-btn');
+  const err = document.getElementById('err-msg');
+  err.textContent = '';
+
+  if (activeTab === 'email') {
+    const email = document.getElementById('f-email').value.trim();
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { err.textContent = 'Please enter a valid email address.'; return; }
+    btn.disabled = true; btn.textContent = 'Unsubscribing…';
+    await unsubscribe({ email }).catch(() => { show('s-notfound'); });
+  } else {
+    const phone = document.getElementById('f-phone').value.trim();
+    if (!phone || phone.length < 7) { err.textContent = 'Please enter a valid phone number with country code.'; return; }
+    btn.disabled = true; btn.textContent = 'Unsubscribing…';
+    await unsubscribe({ phone }).catch(() => { show('s-notfound'); });
+  }
+}
+
+// On load — auto-process if query params are present
+(async function init() {
+  const params = new URLSearchParams(location.search);
+  const id    = params.get('id');
+  const email = params.get('email');
+  const phone = params.get('phone');
+
+  if (id || email || phone) {
+    show('s-loading');
+    const payload = id ? { id } : email ? { email } : { phone };
+    try { await unsubscribe(payload); } catch { show('s-notfound'); }
+  } else {
+    show('s-form');
+  }
+})();
+</script>
+</body>
+</html>
