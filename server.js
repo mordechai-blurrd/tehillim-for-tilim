@@ -193,6 +193,26 @@ app.post('/api/sms-webhook', (req, res) => {
   res.type('text/xml').send('<Response></Response>'); // TwiML empty response
 });
 
+// PATCH /api/admin/subscriber/:id — update subscriber fields (admin only)
+app.patch('/api/admin/subscriber/:id', (req, res) => {
+  const adminKey = process.env.ADMIN_KEY;
+  if (adminKey) {
+    const provided = req.query.key || req.headers['authorization']?.replace(/^Bearer\s+/i, '');
+    if (provided !== adminKey) return res.status(403).json({ ok: false, error: 'Forbidden' });
+  }
+  const { whatsapp, email, phone, name } = req.body;
+  const subs = db.all();
+  const idx  = subs.findIndex(s => s.id === req.params.id);
+  if (idx === -1) return res.status(404).json({ ok: false, error: 'Not found' });
+  if (whatsapp !== undefined) subs[idx].whatsapp = whatsapp;
+  if (email    !== undefined) subs[idx].email    = email;
+  if (phone    !== undefined) subs[idx].phone    = phone;
+  if (name     !== undefined) subs[idx].name     = name;
+  db._write(subs);
+  console.log(`[Admin] Updated subscriber ${subs[idx].name}:`, { whatsapp, email, phone, name });
+  res.json({ ok: true, subscriber: subs[idx] });
+});
+
 // GET /api/admin
 app.get('/api/admin', (req, res) => {
   const adminKey = process.env.ADMIN_KEY;

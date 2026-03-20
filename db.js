@@ -180,4 +180,5 @@ function normalizePhone(phone) {
   return digits.startsWith('+') ? digits : '+' + digits;
 }
 
+db._write = _write;
 module.exports = db;
