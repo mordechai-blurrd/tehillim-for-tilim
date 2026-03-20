@@ -603,6 +603,8 @@ async function requestPush(subscriberId) {
 /* ── Boot ── */
 connectWS();
 refreshStatus();
+// Re-init foreground push handler for returning visitors who already granted permission
+if (typeof Notification !== 'undefined' && Notification.permission === 'granted') initForegroundPush();
 </script>
 </body>
 </html>
