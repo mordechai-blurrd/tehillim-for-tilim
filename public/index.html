@@ -536,6 +536,32 @@ let _toastTimer;
 function toast(msg,type='ok'){ const el=document.getElementById('toast'); el.textContent=msg; el.className='on '+type; clearTimeout(_toastTimer); _toastTimer=setTimeout(()=>el.className='',3200); }
 
 /* ── Push Notifications ── */
+let _fcmMessaging = null;
+
+function initForegroundPush() {
+  if (_fcmMessaging) return;
+  if (!self.FIREBASE_CONFIG || !self.FIREBASE_CONFIG.projectId) return;
+  try {
+    if (!firebase.apps.length) firebase.initializeApp(self.FIREBASE_CONFIG);
+    _fcmMessaging = firebase.messaging();
+    _fcmMessaging.onMessage(payload => {
+      // Page is in foreground — service worker won't show the notification,
+      // so we show it manually via the SW registration.
+      const title = payload.notification?.title || '🚨 Red Alert — Say Tehillim Now';
+      const body  = payload.notification?.body  || 'Stop and say Tehillim now.';
+      navigator.serviceWorker.ready.then(reg => {
+        reg.showNotification(title, {
+          body,
+          icon:               '/icon-192.png',
+          requireInteraction: true,
+          vibrate:            [300, 100, 300, 100, 300],
+          data:               { url: '/' },
+        });
+      });
+    });
+  } catch(e) { console.error('[Push] foreground init failed:', e); }
+}
+
 async function requestPush(subscriberId) {
   if (!('Notification' in window) || !('serviceWorker' in navigator)) {
     toast('Push not supported in this browser', 'info'); return;
@@ -550,8 +576,19 @@ async function requestPush(subscriberId) {
     }
     const reg = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
     if (!firebase.apps.length) firebase.initializeApp(self.FIREBASE_CONFIG);
-    const messaging = firebase.messaging();
-    const token = await messaging.getToken({ vapidKey: self.FIREBASE_VAPID_KEY, serviceWorkerRegistration: reg });
+    _fcmMessaging = firebase.messaging();
+    _fcmMessaging.onMessage(payload => {
+      const title = payload.notification?.title || '🚨 Red Alert — Say Tehillim Now';
+      const body  = payload.notification?.body  || 'Stop and say Tehillim now.';
+      reg.showNotification(title, {
+        body,
+        icon:               '/icon-192.png',
+        requireInteraction: true,
+        vibrate:            [300, 100, 300, 100, 300],
+        data:               { url: '/' },
+      });
+    });
+    const token = await _fcmMessaging.getToken({ vapidKey: self.FIREBASE_VAPID_KEY, serviceWorkerRegistration: reg });
     await fetch('/api/push-token', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ subscriberId, token }),
