@@ -278,11 +278,7 @@
         <div class="radio-group">
           <div class="radio-opt" id="opt-email"    onclick="pickMethod('email')">✉️ &nbsp;Email</div>
           <div class="radio-opt" id="opt-whatsapp" onclick="pickMethod('whatsapp')">💬 &nbsp;WhatsApp</div>
-          <div class="radio-opt" id="opt-push"     onclick="pickMethod('push')">🔔 &nbsp;Push</div>
-          <div class="radio-opt combo-opt" id="opt-email_whatsapp"      onclick="pickMethod('email_whatsapp')">✉️+💬 Email &amp; WhatsApp</div>
-          <div class="radio-opt combo-opt" id="opt-email_push"          onclick="pickMethod('email_push')">✉️+🔔 Email &amp; Push</div>
-          <div class="radio-opt combo-opt" id="opt-whatsapp_push"       onclick="pickMethod('whatsapp_push')">💬+🔔 WhatsApp &amp; Push</div>
-          <div class="radio-opt combo-opt" id="opt-email_whatsapp_push" onclick="pickMethod('email_whatsapp_push')">✉️+💬+🔔 All Three</div>
+          <div class="radio-opt combo-opt" id="opt-email_whatsapp" onclick="pickMethod('email_whatsapp')">✉️+💬 Email &amp; WhatsApp</div>
         </div>
       </div>
 
@@ -422,9 +418,9 @@ function bumpCount(){ animateCount((_displayed||getLocal())+1); }
 
 /* ── Form ── */
 let notifyMethod = null;
-const ALL_OPTS   = ['email','whatsapp','push','email_whatsapp','email_push','whatsapp_push','email_whatsapp_push'];
-const needsEmail = m => ['email','email_whatsapp','email_push','email_whatsapp_push'].includes(m);
-const needsWA    = m => ['whatsapp','email_whatsapp','whatsapp_push','email_whatsapp_push'].includes(m);
+const ALL_OPTS   = ['email','whatsapp','email_whatsapp'];
+const needsEmail = m => ['email','email_whatsapp'].includes(m);
+const needsWA    = m => ['whatsapp','email_whatsapp'].includes(m);
 const needsPush  = m => ['push','email_push','whatsapp_push','email_whatsapp_push'].includes(m);
 
 function pickMethod(m){
