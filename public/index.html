@@ -27,8 +27,8 @@
     html { scroll-behavior: smooth; }
     body {
       background: var(--navy); color: var(--white);
-      font-family: var(--font-b); font-weight: 300;
-      line-height: 1.6; min-height: 100vh; overflow-x: hidden;
+      font-family: var(--font-b); font-weight: 400;
+      font-size: 16px; line-height: 1.65; min-height: 100vh; overflow-x: hidden;
     }
     body::before {
       content: ''; position: fixed; inset: 0; z-index: 0;
@@ -123,16 +123,16 @@
     /* ── Card ── */
     .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 36px; margin-bottom: 24px; }
     @media(max-width:480px) { .card { padding: 24px 18px; } }
-    .card-title { font-family: var(--font-h); font-size: 21px; font-weight: 700; color: var(--gold-lt); margin-bottom: 6px; }
-    .card-sub { font-size: 14px; color: var(--muted); margin-bottom: 26px; line-height: 1.55; }
+    .card-title { font-family: var(--font-h); font-size: 23px; font-weight: 700; color: var(--gold-lt); margin-bottom: 6px; }
+    .card-sub { font-size: 16px; color: var(--muted); margin-bottom: 26px; line-height: 1.6; }
 
     /* ── Form ── */
     .field { margin-bottom: 16px; }
-    label.field-label { display: block; font-size: 11px; font-weight: 500; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); margin-bottom: 7px; }
+    label.field-label { display: block; font-size: 12px; font-weight: 500; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); margin-bottom: 7px; }
     input[type=text], input[type=email], input[type=tel] {
       width: 100%; background: rgba(255,255,255,0.04); border: 1px solid var(--border);
       border-radius: 9px; color: var(--white); font-family: var(--font-b);
-      font-size: 15px; font-weight: 300; padding: 13px 16px;
+      font-size: 16px; font-weight: 400; padding: 13px 16px;
       outline: none; -webkit-appearance: none; transition: border-color 0.2s, background 0.2s;
     }
     input::placeholder { color: rgba(122,135,153,0.55); }
@@ -171,21 +171,21 @@
     .btn-primary {
       width: 100%; background: linear-gradient(135deg, #d4a93c 0%, #9a6e18 100%);
       border: none; border-radius: 9px; color: #0b1120;
-      font-family: var(--font-h); font-size: 17px; font-weight: 700;
-      padding: 15px 24px; cursor: pointer; margin-top: 6px;
+      font-family: var(--font-h); font-size: 18px; font-weight: 700;
+      padding: 16px 24px; cursor: pointer; margin-top: 6px;
       transition: opacity 0.2s, transform 0.15s; letter-spacing: 0.01em;
     }
     .btn-primary:hover { opacity: 0.9; transform: translateY(-1px); }
     .btn-primary:active { transform: translateY(0); }
     .btn-primary:disabled { opacity: 0.35; cursor: not-allowed; transform: none; }
-    .form-note { font-size: 11px; color: var(--muted); text-align: center; margin-top: 14px; line-height: 1.6; }
+    .form-note { font-size: 13px; color: var(--muted); text-align: center; margin-top: 14px; line-height: 1.6; }
 
     /* ── Success ── */
     #success-state { display: none; text-align: center; padding: 20px 0 8px; }
     #success-state.on { display: block; }
     .success-icon { font-size: 52px; margin-bottom: 14px; }
     .success-title { font-family: var(--font-h); font-size: 26px; font-weight: 700; color: var(--gold-lt); margin-bottom: 8px; }
-    .success-sub { font-size: 14px; color: var(--muted); line-height: 1.7; }
+    .success-sub { font-size: 16px; color: var(--muted); line-height: 1.7; }
 
     /* ── Tehillim Box ── */
     .tehillim-box {
@@ -199,9 +199,9 @@
 
     /* ── FAQ ── */
     .faq-item { margin-bottom: 20px; }
-    .faq-q { font-size: 14px; font-weight: 500; color: var(--gold); margin-bottom: 4px; }
-    .faq-a { font-size: 14px; color: rgba(245,240,232,0.65); line-height: 1.65; }
-    .badge { display: inline-flex; align-items: center; gap: 7px; background: rgba(255,255,255,0.04); border: 1px solid var(--border); border-radius: 20px; padding: 5px 12px; font-size: 11px; color: var(--muted); margin-top: 16px; }
+    .faq-q { font-size: 15px; font-weight: 500; color: var(--gold); margin-bottom: 4px; }
+    .faq-a { font-size: 15px; color: rgba(245,240,232,0.7); line-height: 1.7; }
+    .badge { display: inline-flex; align-items: center; gap: 7px; background: rgba(255,255,255,0.04); border: 1px solid var(--border); border-radius: 20px; padding: 5px 12px; font-size: 12px; color: var(--muted); margin-top: 16px; }
     .badge-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); }
 
 
@@ -213,7 +213,7 @@
     #toast.info{ border-color: rgba(201,168,76,0.4);  color: var(--gold-lt); }
 
     /* ── Footer ── */
-    footer { text-align: center; margin-top: 56px; font-size: 12px; color: rgba(122,135,153,0.35); line-height: 1.8; }
+    footer { text-align: center; margin-top: 56px; font-size: 13px; color: rgba(122,135,153,0.35); line-height: 1.8; }
     footer span { color: var(--gold-dk); }
 
     /* ── Fade-in ── */
@@ -372,6 +372,7 @@
     <div style="margin-top:4px"><span>Tehillim for Tilim</span> &nbsp;·&nbsp; תהילים לטילים</div>
     <div style="margin-top:4px">עם ישראל חי</div>
     <div style="margin-top:10px"><a href="/unsubscribe" style="color:var(--gold-dk); font-size:11px; text-decoration:none; letter-spacing:0.06em;">Manage / Unsubscribe</a></div>
+    <div style="margin-top:10px; font-size:11px; color:rgba(122,135,153,0.25);">A project from Ayin B'Ayin Org</div>
   </footer>
 
 </div>
