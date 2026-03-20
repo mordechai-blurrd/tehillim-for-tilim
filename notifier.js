@@ -148,6 +148,8 @@ Even one Psalm said with full intention rises straight to Heaven.
 
 Suggested: Tehillim 20, 83, 121, or 130.
 
+Read Tehillim now → https://www.sefaria.org/Psalms
+
 —
 Tehillim for Tilim | תהילים לטילים`;
 }
@@ -166,6 +168,8 @@ Rocket fire has been detected near:
 Even one Psalm said with intention is powerful.
 
 Suggested: Chapters 20, 83, 121, or 130.
+
+📖 Read Tehillim now → https://www.sefaria.org/Psalms
 
 _עם ישראל חי — Am Yisrael Chai_ 🕊️
 
