@@ -72,7 +72,28 @@ wss.on('connection', (ws) => {
 });
 
 // ── Poller event handlers ─────────────────────────────────
+
+// Server-level dedup: belt-and-suspenders guard against the poller emitting
+// the same alert twice (e.g. tzevaadom returning a slightly different time field).
+let _lastDispatchId   = null;
+let _lastDispatchTime = 0;
+let _lastDispatchAreas = '';
+
 poller.on('alert', async (payload) => {
+  const now      = Date.now();
+  const areaKey  = [...(payload.areas || [])].sort().join(',');
+  const sameId   = payload.id === _lastDispatchId;
+  const sameArea = areaKey === _lastDispatchAreas && (now - _lastDispatchTime) < 180_000;
+
+  if (sameId || sameArea) {
+    console.log(`[Server] Duplicate alert suppressed (id=${payload.id})`);
+    return;
+  }
+
+  _lastDispatchId    = payload.id;
+  _lastDispatchTime  = now;
+  _lastDispatchAreas = areaKey;
+
   logAlert('alert', payload);
   broadcast('alert', payload);
 

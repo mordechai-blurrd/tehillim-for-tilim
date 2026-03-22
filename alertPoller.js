@@ -27,6 +27,7 @@ class AlertPoller extends EventEmitter {
   constructor() {
     super();
     this._lastAlertId      = null;
+    this._lastAreaKey      = null;  // sorted area fingerprint for dedup
     this._lastAlertTime    = null;
     this._clearTimer       = null;
     this._active           = false;
@@ -172,10 +173,18 @@ class AlertPoller extends EventEmitter {
       this._clearTimer = null;
     }
 
-    const alertId = raw.id || String(raw.data.join(','));
+    const alertId  = raw.id || String(raw.data.join(','));
+    const areaKey  = [...raw.data].sort().join(',');  // stable fingerprint regardless of poll order
+    const ageMs    = this._lastAlertTime ? Date.now() - this._lastAlertTime : Infinity;
 
-    if (alertId !== this._lastAlertId) {
+    // Suppress duplicate: same ID, OR same area set within 3 minutes (handles tzevaadom
+    // returning slightly different `time` values for the same ongoing alert)
+    const isDuplicate = alertId === this._lastAlertId ||
+                        (areaKey === this._lastAreaKey && ageMs < 180_000);
+
+    if (!isDuplicate) {
       this._lastAlertId   = alertId;
+      this._lastAreaKey   = areaKey;
       this._lastAlertTime = Date.now();
       this._active        = true;
 
@@ -195,9 +204,10 @@ class AlertPoller extends EventEmitter {
 
   _emitClear() {
     if (!this._active) return;
-    this._active      = false;
-    this._clearTimer  = null;
-    this._lastAlertId = null;
+    this._active       = false;
+    this._clearTimer   = null;
+    this._lastAlertId  = null;
+    this._lastAreaKey  = null;
     console.log('[Poller] ✅ Alert cleared');
     this.emit('clear');
   }
