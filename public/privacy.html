@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Privacy Policy — Tehillim for Tilim</title>
+  <link href="https://fonts.googleapis.com/css2?family=Frank+Ruhl+Libre:wght@300;400;700;900&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --navy:    #0b1120;
+      --surface: #151e30;
+      --border:  rgba(255,255,255,0.07);
+      --gold:    #c9a84c;
+      --gold-lt: #e8c97a;
+      --white:   #f5f0e8;
+      --muted:   #9daab8;
+      --radius:  16px;
+      --font-h:  'Frank Ruhl Libre', Georgia, serif;
+      --font-b:  'DM Sans', sans-serif;
+    }
+    body {
+      background: var(--navy); color: var(--white);
+      font-family: var(--font-b); font-weight: 400;
+      font-size: 16px; line-height: 1.75; min-height: 100vh;
+    }
+    body::before {
+      content: ''; position: fixed; inset: 0; z-index: 0;
+      background: radial-gradient(ellipse 80% 50% at 50% -5%, rgba(201,168,76,0.08) 0%, transparent 55%);
+      pointer-events: none;
+    }
+    .page {
+      position: relative; z-index: 1;
+      max-width: 720px; margin: 0 auto; padding: 56px 24px 100px;
+    }
+    .logo {
+      font-family: var(--font-h); font-size: 22px; font-weight: 900;
+      background: linear-gradient(150deg, var(--gold-lt) 0%, var(--gold) 55%, #a07828 100%);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+      margin-bottom: 40px; display: block; text-decoration: none;
+    }
+    h1 {
+      font-family: var(--font-h); font-size: clamp(28px, 5vw, 38px); font-weight: 900;
+      color: var(--gold-lt); margin-bottom: 8px;
+    }
+    .updated { font-size: 13px; color: var(--muted); margin-bottom: 48px; }
+    h2 {
+      font-family: var(--font-h); font-size: 20px; font-weight: 700;
+      color: var(--gold); margin-top: 40px; margin-bottom: 12px;
+    }
+    p { color: rgba(245,240,232,0.88); margin-bottom: 16px; }
+    ul { color: rgba(245,240,232,0.88); margin: 0 0 16px 20px; }
+    ul li { margin-bottom: 8px; }
+    a { color: var(--gold); text-decoration: underline; text-underline-offset: 2px; }
+    a:hover { color: var(--gold-lt); }
+    .divider { height: 1px; background: var(--border); margin: 48px 0; }
+    footer {
+      text-align: center; margin-top: 64px; font-size: 13px;
+      color: rgba(157,170,184,0.7); line-height: 1.8;
+    }
+    footer a { color: var(--gold); text-decoration: none; font-size: 13px; }
+  </style>
+</head>
+<body>
+<div class="page">
+  <a href="/" class="logo">תהילים לטילים — Tehillim for Tilim</a>
+
+  <h1>Privacy Policy</h1>
+  <p class="updated">Last updated: March 2026</p>
+
+  <p>Tehillim for Tilim is a free public service that sends rocket alert notifications so people around the world can stop and say Tehillim for those in Israel. We take your privacy seriously and are committed to being transparent about how we handle your data.</p>
+
+  <h2>1. What Data We Collect</h2>
+  <p>When you sign up for notifications, we collect only what is necessary to send you alerts:</p>
+  <ul>
+    <li><strong>Name</strong> — used to personalize notification messages</li>
+    <li><strong>Email address</strong> — if you choose email notifications</li>
+    <li><strong>Phone number</strong> — if you choose SMS or WhatsApp notifications</li>
+    <li><strong>Notification preferences</strong> — which channels you want to receive alerts through</li>
+    <li><strong>Browser push token</strong> — if you enable push notifications (stored on your device and our server)</li>
+  </ul>
+  <p>We do not collect location data, IP addresses, browsing history, or any other personal information beyond what is listed above.</p>
+
+  <h2>2. How We Use Your Data</h2>
+  <p>Your information is used for one purpose only: to send you real-time rocket alert notifications so you can say Tehillim. Specifically:</p>
+  <ul>
+    <li>Your name is included in notification messages to personalize them</li>
+    <li>Your email is used to send alert and welcome emails via EmailJS</li>
+    <li>Your phone number is used to send SMS or WhatsApp messages via Twilio</li>
+    <li>Your push token is used to deliver browser push notifications via Firebase Cloud Messaging</li>
+  </ul>
+  <p>We will never use your data for marketing, advertising, or any purpose unrelated to rocket alert notifications.</p>
+
+  <h2>3. Data Sharing</h2>
+  <p>We do not sell, rent, or share your personal data with any third parties for commercial purposes. Your data is processed through the following trusted service providers solely to deliver notifications:</p>
+  <ul>
+    <li><strong>EmailJS</strong> — for sending email notifications</li>
+    <li><strong>Twilio</strong> — for SMS and WhatsApp notifications</li>
+    <li><strong>Firebase (Google)</strong> — for browser push notifications</li>
+    <li><strong>Railway</strong> — for hosting and data storage</li>
+  </ul>
+  <p>Each of these providers has their own privacy policy and is bound by applicable data protection laws.</p>
+
+  <h2>4. Data Storage</h2>
+  <p>Your data is stored on a secure server hosted by Railway. We retain your information only for as long as you remain subscribed. Once you unsubscribe, your record is deactivated. You may request complete deletion at any time (see below).</p>
+
+  <h2>5. How to Unsubscribe and Delete Your Data</h2>
+  <p>You can unsubscribe at any time using any of the following methods:</p>
+  <ul>
+    <li>Click the unsubscribe link included in every email notification</li>
+    <li>Reply <strong>STOP</strong> to any SMS message</li>
+    <li>Visit <a href="/unsubscribe">/unsubscribe</a> and enter your email or phone number</li>
+    <li>Email us at <a href="mailto:tehillimfortilim@gmail.com">tehillimfortilim@gmail.com</a> to request full deletion of your data</li>
+  </ul>
+  <p>Upon request, we will permanently delete all personal information associated with your account within 7 days.</p>
+
+  <h2>6. Children's Privacy</h2>
+  <p>This service is not directed at children under the age of 13. We do not knowingly collect personal information from children.</p>
+
+  <h2>7. Changes to This Policy</h2>
+  <p>We may update this privacy policy from time to time. Any changes will be posted on this page with an updated date. Continued use of the service after changes constitutes acceptance of the updated policy.</p>
+
+  <h2>8. Contact</h2>
+  <p>For any privacy-related questions or data deletion requests, please contact us at:<br>
+  <a href="mailto:tehillimfortilim@gmail.com">tehillimfortilim@gmail.com</a></p>
+
+  <div class="divider"></div>
+
+  <footer>
+    <a href="/">← Back to Tehillim for Tilim</a> &nbsp;·&nbsp;
+    <a href="/terms">Terms of Service</a> &nbsp;·&nbsp;
+    <a href="/unsubscribe">Unsubscribe</a>
+  </footer>
+</div>
+</body>
+</html>

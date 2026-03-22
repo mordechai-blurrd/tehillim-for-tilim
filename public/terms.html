@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Terms of Service — Tehillim for Tilim</title>
+  <link href="https://fonts.googleapis.com/css2?family=Frank+Ruhl+Libre:wght@300;400;700;900&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --navy:    #0b1120;
+      --surface: #151e30;
+      --border:  rgba(255,255,255,0.07);
+      --gold:    #c9a84c;
+      --gold-lt: #e8c97a;
+      --white:   #f5f0e8;
+      --muted:   #9daab8;
+      --radius:  16px;
+      --font-h:  'Frank Ruhl Libre', Georgia, serif;
+      --font-b:  'DM Sans', sans-serif;
+    }
+    body {
+      background: var(--navy); color: var(--white);
+      font-family: var(--font-b); font-weight: 400;
+      font-size: 16px; line-height: 1.75; min-height: 100vh;
+    }
+    body::before {
+      content: ''; position: fixed; inset: 0; z-index: 0;
+      background: radial-gradient(ellipse 80% 50% at 50% -5%, rgba(201,168,76,0.08) 0%, transparent 55%);
+      pointer-events: none;
+    }
+    .page {
+      position: relative; z-index: 1;
+      max-width: 720px; margin: 0 auto; padding: 56px 24px 100px;
+    }
+    .logo {
+      font-family: var(--font-h); font-size: 22px; font-weight: 900;
+      background: linear-gradient(150deg, var(--gold-lt) 0%, var(--gold) 55%, #a07828 100%);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+      margin-bottom: 40px; display: block; text-decoration: none;
+    }
+    h1 {
+      font-family: var(--font-h); font-size: clamp(28px, 5vw, 38px); font-weight: 900;
+      color: var(--gold-lt); margin-bottom: 8px;
+    }
+    .updated { font-size: 13px; color: var(--muted); margin-bottom: 48px; }
+    h2 {
+      font-family: var(--font-h); font-size: 20px; font-weight: 700;
+      color: var(--gold); margin-top: 40px; margin-bottom: 12px;
+    }
+    p { color: rgba(245,240,232,0.88); margin-bottom: 16px; }
+    ul { color: rgba(245,240,232,0.88); margin: 0 0 16px 20px; }
+    ul li { margin-bottom: 8px; }
+    a { color: var(--gold); text-decoration: underline; text-underline-offset: 2px; }
+    a:hover { color: var(--gold-lt); }
+    .divider { height: 1px; background: var(--border); margin: 48px 0; }
+    .notice {
+      background: rgba(201,168,76,0.07); border: 1px solid rgba(201,168,76,0.2);
+      border-radius: 10px; padding: 16px 20px; margin-bottom: 16px;
+      color: rgba(245,240,232,0.88); font-size: 15px;
+    }
+    footer {
+      text-align: center; margin-top: 64px; font-size: 13px;
+      color: rgba(157,170,184,0.7); line-height: 1.8;
+    }
+    footer a { color: var(--gold); text-decoration: none; font-size: 13px; }
+  </style>
+</head>
+<body>
+<div class="page">
+  <a href="/" class="logo">תהילים לטילים — Tehillim for Tilim</a>
+
+  <h1>Terms of Service</h1>
+  <p class="updated">Last updated: March 2026</p>
+
+  <p>By signing up for Tehillim for Tilim, you agree to the following terms. Please read them carefully.</p>
+
+  <h2>1. What This Service Does</h2>
+  <p>Tehillim for Tilim is a free notification service that alerts subscribers when rockets are fired toward Israel, based on data from Pikud Ha'oref (Israel Home Front Command) and other public sources. The purpose of the service is to give Jews around the world the opportunity to stop and say Tehillim in real time for those in danger.</p>
+  <p>Notifications are delivered via email, WhatsApp, SMS, and browser push notifications, depending on your chosen preferences.</p>
+
+  <h2>2. Reliability of Alerts</h2>
+  <div class="notice">
+    ⚠️ <strong>Important:</strong> Alert notifications depend on third-party data sources including Pikud Ha'oref, tzevaadom.co.il, and others. While we make every effort to deliver alerts promptly and accurately, <strong>we cannot guarantee 100% reliability, accuracy, or delivery speed.</strong>
+  </div>
+  <p>Specifically:</p>
+  <ul>
+    <li>Alerts may be delayed due to network conditions, server availability, or third-party API outages</li>
+    <li>Alerts may occasionally not be delivered due to email spam filters, carrier restrictions, or device settings</li>
+    <li>This service is intended for awareness and prayer — <strong>it must never be relied upon as a primary safety or emergency alert system</strong></li>
+    <li>For life-safety situations, always rely on official local emergency systems and the Red Alert app</li>
+  </ul>
+
+  <h2>3. Free Service</h2>
+  <p>Tehillim for Tilim is provided completely free of charge. There are no subscription fees, hidden costs, or premium tiers. We reserve the right to introduce optional donations in the future to cover operating costs, but the core notification service will remain free.</p>
+
+  <h2>4. User Responsibilities</h2>
+  <p>By using this service, you agree to:</p>
+  <ul>
+    <li>Provide accurate contact information when signing up</li>
+    <li>Keep your contact information up to date</li>
+    <li>Not use this service for any unlawful purpose</li>
+    <li>Not attempt to abuse, overload, or interfere with the service</li>
+    <li>Unsubscribe if you no longer wish to receive notifications rather than marking messages as spam</li>
+  </ul>
+
+  <h2>5. No Warranties</h2>
+  <p>This service is provided "as is" without warranties of any kind, express or implied. We make no warranty that the service will be uninterrupted, error-free, or that alerts will be delivered within any specific timeframe.</p>
+
+  <h2>6. Limitation of Liability</h2>
+  <p>Tehillim for Tilim and its operators shall not be liable for any damages arising from missed, delayed, or inaccurate alerts, or from any interruption of service. This includes but is not limited to direct, indirect, incidental, or consequential damages.</p>
+
+  <h2>7. Right to Terminate Service</h2>
+  <p>We reserve the right to suspend or terminate this service at any time, with or without notice. We also reserve the right to remove any subscriber who misuses the service or violates these terms.</p>
+
+  <h2>8. Privacy</h2>
+  <p>Your use of this service is also governed by our <a href="/privacy">Privacy Policy</a>, which explains what data we collect and how we use it.</p>
+
+  <h2>9. Changes to These Terms</h2>
+  <p>We may update these terms from time to time. Continued use of the service after changes are posted constitutes your acceptance of the updated terms.</p>
+
+  <h2>10. Contact</h2>
+  <p>Questions about these terms? Contact us at:<br>
+  <a href="mailto:tehillimfortilim@gmail.com">tehillimfortilim@gmail.com</a></p>
+
+  <div class="divider"></div>
+
+  <footer>
+    <a href="/">← Back to Tehillim for Tilim</a> &nbsp;·&nbsp;
+    <a href="/privacy">Privacy Policy</a> &nbsp;·&nbsp;
+    <a href="/unsubscribe">Unsubscribe</a>
+  </footer>
+</div>
+</body>
+</html>

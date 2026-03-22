@@ -20,6 +20,8 @@ const MAKO_URL  = 'https://www.mako.co.il/Collab/amudanan/alerts.json';
 const POLL_MS        = (parseInt(process.env.POLL_INTERVAL_SECONDS) || 5) * 1000;
 const CLEAR_AFTER_MS = 30_000;
 const SOURCES        = ['oref', 'tzevaadom', 'mako'];
+const WATCHDOG_MS    = 3 * 60 * 1000;  // check every 3 min
+const STALE_MS       = 5 * 60 * 1000;  // restart if no success in 5 min
 
 class AlertPoller extends EventEmitter {
   constructor() {
@@ -29,35 +31,55 @@ class AlertPoller extends EventEmitter {
     this._clearTimer       = null;
     this._active           = false;
     this._timer            = null;
+    this._watchdogTimer    = null;
     this._sourceIdx        = 0;   // index into SOURCES
     this._consecutiveFails = 0;
+    this._lastSuccessTime  = null;
   }
 
   start() {
     console.log(`[Poller] Starting — polling every ${POLL_MS / 1000}s`);
+    this._lastSuccessTime = Date.now(); // grace period on startup
     this._tick();
     this._timer = setInterval(() => this._tick(), POLL_MS);
+    this._watchdogTimer = setInterval(() => this._watchdog(), WATCHDOG_MS);
   }
 
   stop() {
-    if (this._timer)     clearInterval(this._timer);
-    if (this._clearTimer) clearTimeout(this._clearTimer);
+    if (this._timer)        clearInterval(this._timer);
+    if (this._watchdogTimer) clearInterval(this._watchdogTimer);
+    if (this._clearTimer)   clearTimeout(this._clearTimer);
+  }
+
+  _watchdog() {
+    const stale = Date.now() - (this._lastSuccessTime || 0) > STALE_MS;
+    if (!stale) return;
+    console.error(`[Watchdog] ⚠️  No successful poll in ${STALE_MS / 60000} min — restarting poller`);
+    clearInterval(this._timer);
+    this._sourceIdx        = 1; // restart on tzevaadom (skip oref — needs Israeli IP)
+    this._consecutiveFails = 0;
+    this._lastSuccessTime  = Date.now();
+    this._tick();
+    this._timer = setInterval(() => this._tick(), POLL_MS);
+    console.log('[Watchdog] Poller restarted.');
   }
 
   async _tick() {
     try {
       const data = await this._fetchCurrent();
       this._consecutiveFails = 0;
+      this._lastSuccessTime  = Date.now();
       this._handleData(data);
     } catch (err) {
       this._consecutiveFails++;
       console.warn(`[Poller] Fetch failed (${this._consecutiveFails}) [${SOURCES[this._sourceIdx]}]:`, err.message);
 
-      // Advance to next source after 3 consecutive failures
-      if (this._consecutiveFails >= 3 && this._sourceIdx < SOURCES.length - 1) {
-        this._sourceIdx++;
+      // Cycle to next source after 3 consecutive failures (wraps back to tzevaadom, skipping oref)
+      if (this._consecutiveFails >= 3) {
+        const next = this._sourceIdx < SOURCES.length - 1 ? this._sourceIdx + 1 : 1; // skip oref on wrap
+        this._sourceIdx = next;
         this._consecutiveFails = 0;
-        console.log(`[Poller] Switching to fallback source: ${SOURCES[this._sourceIdx]}`);
+        console.log(`[Poller] Switching source: ${SOURCES[this._sourceIdx]}`);
       }
     }
   }
@@ -79,7 +101,7 @@ class AlertPoller extends EventEmitter {
         'Accept':           'application/json',
         'User-Agent':       'Mozilla/5.0 (compatible; TehillimForTilim/1.0)',
       },
-      timeout: 4000,
+      signal: AbortSignal.timeout(4000),
     });
 
     if (res.status === 204) return null;
@@ -97,7 +119,7 @@ class AlertPoller extends EventEmitter {
   async _fetchTzevaadom() {
     const res = await fetch(TZEVA_URL, {
       headers: { 'Accept': 'application/json' },
-      timeout: 4000,
+      signal: AbortSignal.timeout(4000),
     });
     if (!res.ok) throw new Error(`tzevaadom HTTP ${res.status}`);
     const data = await res.json();
@@ -119,7 +141,7 @@ class AlertPoller extends EventEmitter {
   async _fetchMako() {
     const res = await fetch(MAKO_URL, {
       headers: { 'Accept': 'application/json' },
-      timeout: 4000,
+      signal: AbortSignal.timeout(4000),
     });
     if (!res.ok) throw new Error(`mako HTTP ${res.status}`);
     const data = await res.json();
@@ -181,11 +203,16 @@ class AlertPoller extends EventEmitter {
   }
 
   getStatus() {
+    const pollerHealthy = this._lastSuccessTime
+      ? (Date.now() - this._lastSuccessTime) < STALE_MS
+      : false;
     return {
-      active:   this._active,
-      source:   SOURCES[this._sourceIdx],
-      lastId:   this._lastAlertId,
-      lastTime: this._lastAlertTime,
+      active:         this._active,
+      source:         SOURCES[this._sourceIdx],
+      lastId:         this._lastAlertId,
+      lastTime:       this._lastAlertTime,
+      pollerHealthy,
+      lastSuccessTime: this._lastSuccessTime,
     };
   }
 }

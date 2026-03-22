@@ -46,7 +46,7 @@ function _write(subs) {
 }
 
 const db = {
-  add({ name, method, email, phone, whatsapp }) {
+  add({ name, method, email, phone, whatsapp, source = 'website' }) {
     if (!VALID_METHODS.includes(method)) return { ok: false, error: 'invalid_method' };
 
     const subs = _read();
@@ -68,6 +68,7 @@ const db = {
       id:         randomUUID(),
       name:       name.trim(),
       method,
+      source,
       email:      email    ? email.trim().toLowerCase() : null,
       phone:      phone    ? normalizePhone(phone)      : null,
       whatsapp:   resolvedWA,
@@ -176,9 +177,19 @@ function wantsPush(method) {
 }
 
 function normalizePhone(phone) {
-  const digits = phone.replace(/[\s\-().]/g, '');
-  return digits.startsWith('+') ? digits : '+' + digits;
+  // Strip everything except digits and leading +
+  const cleaned = phone.trim().replace(/[\s\-().]/g, '');
+  if (cleaned.startsWith('+')) return cleaned;
+
+  const digits = cleaned.replace(/\D/g, '');
+  // 10-digit number — assume US/Canada, prepend +1
+  if (digits.length === 10) return '+1' + digits;
+  // 11-digit starting with 1 — US with country code, just add +
+  if (digits.length === 11 && digits.startsWith('1')) return '+' + digits;
+  // Everything else — just add +
+  return '+' + digits;
 }
 
 db._write = _write;
+db.normalizePhone = normalizePhone;
 module.exports = db;

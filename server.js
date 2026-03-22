@@ -25,6 +25,14 @@ const poller     = require('./alertPoller');
 const db         = require('./db');
 const { dispatch, sendWelcome } = require('./notifier');
 
+// Twilio client for inbound webhook replies
+let twilioClient;
+try {
+  if (process.env.TWILIO_ACCOUNT_SID && !process.env.TWILIO_ACCOUNT_SID.startsWith('ACx')) {
+    twilioClient = require('twilio')(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
+  }
+} catch (e) { /* notifier.js will log the warning */ }
+
 const app    = express();
 const server = http.createServer(app);
 const wss    = new WebSocketServer({ server, path: '/ws' });
@@ -182,6 +190,52 @@ app.delete('/api/push-token', (req, res) => {
   res.json({ ok: true });
 });
 
+// POST /api/whatsapp-webhook — Twilio inbound WhatsApp messages
+app.post('/api/whatsapp-webhook', async (req, res) => {
+  const body = (req.body.Body || '').trim().toLowerCase();
+  const from = (req.body.From || '').replace('whatsapp:', ''); // E.164 number
+
+  if (!from) return res.type('text/xml').send('<Response></Response>');
+
+  // Handle opt-out
+  if (['stop', 'unsubscribe', 'cancel', 'end', 'quit'].includes(body)) {
+    const removed = db.removeByPhone(from);
+    console.log(`[WhatsApp] STOP from ${from} — ${removed ? 'unsubscribed' : 'not found'}`);
+    return res.type('text/xml').send('<Response></Response>');
+  }
+
+  // Handle join
+  if (body === 'join tehillim') {
+    const existing = db.getActive().find(s => s.whatsapp === from || s.phone === from);
+    if (existing) {
+      console.log(`[WhatsApp] Already subscribed: ${from}`);
+      return res.type('text/xml').send('<Response></Response>');
+    }
+
+    const result = db.add({
+      name:     from, // will be updated below to a friendly display
+      method:   'whatsapp',
+      whatsapp: from,
+      source:   'whatsapp_direct',
+    });
+
+    if (result.ok) {
+      console.log(`[WhatsApp] New subscriber via direct join: ${from}`);
+      // Send welcome reply
+      if (twilioClient) {
+        const waFrom = process.env.TWILIO_WHATSAPP_FROM || 'whatsapp:+18148940446';
+        twilioClient.messages.create({
+          body: `🕊️ *Tehillim for Tilim — You're in!*\n\nYou'll receive an alert here whenever rockets are detected in Israel.\n\n*עם ישראל חי — Am Yisrael Chai*\n\nTo unsubscribe anytime, reply STOP.`,
+          from: waFrom,
+          to:   `whatsapp:${from}`,
+        }).catch(e => console.warn('[WhatsApp] Welcome reply failed:', e.message));
+      }
+    }
+  }
+
+  res.type('text/xml').send('<Response></Response>');
+});
+
 // POST /api/sms-webhook — Twilio inbound SMS (handles STOP / UNSUBSCRIBE replies)
 app.post('/api/sms-webhook', (req, res) => {
   const body = (req.body.Body || '').trim().toUpperCase();
@@ -191,6 +245,26 @@ app.post('/api/sms-webhook', (req, res) => {
     console.log(`[SMS] STOP from ${from} — ${removed ? 'unsubscribed' : 'not found'}`);
   }
   res.type('text/xml').send('<Response></Response>'); // TwiML empty response
+});
+
+// POST /api/admin/subscriber/:id/update — update subscriber fields (admin only)
+app.post('/api/admin/subscriber/:id/update', (req, res) => {
+  const adminKey = process.env.ADMIN_KEY;
+  if (adminKey) {
+    const provided = req.query.key || req.headers['authorization']?.replace(/^Bearer\s+/i, '');
+    if (provided !== adminKey) return res.status(403).json({ ok: false, error: 'Forbidden' });
+  }
+  const { whatsapp, email, phone, name } = req.body;
+  const subs = db.all();
+  const idx  = subs.findIndex(s => s.id === req.params.id);
+  if (idx === -1) return res.status(404).json({ ok: false, error: 'Not found' });
+  if (name     !== undefined) subs[idx].name     = name.trim();
+  if (email    !== undefined) subs[idx].email    = email ? email.trim().toLowerCase() : null;
+  if (whatsapp !== undefined) subs[idx].whatsapp = whatsapp ? db.normalizePhone(whatsapp) : null;
+  if (phone    !== undefined) subs[idx].phone    = phone    ? db.normalizePhone(phone)    : null;
+  db._write(subs);
+  console.log(`[Admin] Updated subscriber ${subs[idx].name}:`, { whatsapp: subs[idx].whatsapp, email: subs[idx].email, phone: subs[idx].phone });
+  res.json({ ok: true, subscriber: subs[idx] });
 });
 
 // PATCH /api/admin/subscriber/:id — update subscriber fields (admin only)
@@ -213,6 +287,15 @@ app.patch('/api/admin/subscriber/:id', (req, res) => {
   res.json({ ok: true, subscriber: subs[idx] });
 });
 
+// GET /admin — admin dashboard UI
+app.get('/admin', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'admin.html'));
+});
+
+// GET /privacy and /terms
+app.get('/privacy', (req, res) => res.sendFile(path.join(__dirname, 'public', 'privacy.html')));
+app.get('/terms',   (req, res) => res.sendFile(path.join(__dirname, 'public', 'terms.html')));
+
 // GET /api/admin
 app.get('/api/admin', (req, res) => {
   const adminKey = process.env.ADMIN_KEY;
@@ -231,8 +314,11 @@ app.get('/api/admin', (req, res) => {
 
 // POST /api/test-alert  (dev / admin only)
 app.post('/api/test-alert', async (req, res) => {
-  if (!IS_DEV && !req.headers['x-admin-key']) {
-    return res.status(403).json({ ok: false, error: 'Forbidden' });
+  const adminKey = process.env.ADMIN_KEY;
+  if (!IS_DEV) {
+    const provided = req.headers['x-admin-key'];
+    if (!adminKey || !provided || provided !== adminKey)
+      return res.status(403).json({ ok: false, error: 'Forbidden' });
   }
   const areas = req.body.areas || ['Tel Aviv', 'Rishon LeZion', 'Bat Yam'];
   const payload = {

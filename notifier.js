@@ -45,9 +45,9 @@ const BASE_URL    = process.env.BASE_URL || 'http://localhost:3000';
 const COOLDOWN_MS = (parseInt(process.env.ALERT_COOLDOWN_SECONDS) || 120) * 1000;
 
 // ── Helpers ─────────────────────────────────────────────────
-const wantsEmail    = m => ['email','email_sms','email_whatsapp','all'].includes(m);
+const wantsEmail    = m => ['email','email_sms','email_whatsapp','email_push','email_whatsapp_push','all'].includes(m);
 const wantsSMS      = m => ['sms','sms_whatsapp','email_sms','all'].includes(m);
-const wantsWhatsApp = m => ['whatsapp','sms_whatsapp','email_whatsapp','all'].includes(m);
+const wantsWhatsApp = m => ['whatsapp','sms_whatsapp','email_whatsapp','whatsapp_push','email_whatsapp_push','all'].includes(m);
 
 // Cooldown: per subscriber
 const recentlySent = new Map();
@@ -123,7 +123,7 @@ async function sendSMS(sub, areaStr, timeStr) {
 // ── WhatsApp ───────────────────────────────────────────────
 async function sendWhatsApp(sub, areaStr, timeStr) {
   const body = buildWhatsAppBody(sub.name, areaStr, timeStr, sub.id);
-  const from = process.env.TWILIO_WHATSAPP_FROM || 'whatsapp:+14155238886'; // Sandbox default
+  const from = process.env.TWILIO_WHATSAPP_FROM || 'whatsapp:+18148940446';
 
   if (!twilioClient) { console.log(`[DRY RUN] WhatsApp → ${sub.whatsapp}`); return; }
 
@@ -198,7 +198,7 @@ async function sendWelcome(sub) {
   }
 
   if (sub.whatsapp && twilioClient) {
-    const from = process.env.TWILIO_WHATSAPP_FROM || 'whatsapp:+14155238886';
+    const from = process.env.TWILIO_WHATSAPP_FROM || 'whatsapp:+18148940446';
     promises.push(
       twilioClient.messages.create({
         body: `🕊️ *Tehillim for Tilim — Welcome, ${sub.name}!*\n\nYou're signed up. You'll receive an alert here whenever rockets are detected in Israel.\n\n*עם ישראל חי — Am Yisrael Chai*\n\nUnsubscribe anytime: ${BASE_URL}/unsubscribe/${sub.id}`,

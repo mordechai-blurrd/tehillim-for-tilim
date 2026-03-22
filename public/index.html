@@ -6,6 +6,9 @@
   <title>Tehillim for Tilim — תהילים לטילים</title>
   <meta name="description" content="Get notified instantly when rockets are fired toward Israel. Stop and say Tehillim." />
   <link href="https://fonts.googleapis.com/css2?family=Frank+Ruhl+Libre:wght@300;400;500;700;900&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap" rel="stylesheet" />
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging-compat.js"></script>
+  <script src="/firebase-config.js"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     :root {
@@ -19,7 +22,7 @@
       --red-lt:  #ff6b74;
       --green:   #4ade80;
       --white:   #f5f0e8;
-      --muted:   #7a8799;
+      --muted:   #9daab8;
       --radius:  16px;
       --font-h:  'Frank Ruhl Libre', Georgia, serif;
       --font-b:  'DM Sans', sans-serif;
@@ -27,7 +30,7 @@
     html { scroll-behavior: smooth; }
     body {
       background: var(--navy); color: var(--white);
-      font-family: var(--font-b); font-weight: 400;
+      font-family: var(--font-b); font-weight: 500;
       font-size: 16px; line-height: 1.65; min-height: 100vh; overflow-x: hidden;
     }
     body::before {
@@ -159,9 +162,11 @@
     .wa-note {
       margin-top: 10px; padding: 10px 14px;
       background: rgba(37,211,102,0.07); border: 1px solid rgba(37,211,102,0.2);
-      border-radius: 8px; font-size: 12px; color: rgba(245,240,232,0.7); line-height: 1.6;
+      border-radius: 8px; font-size: 12px; color: rgba(245,240,232,0.88); line-height: 1.6;
     }
     .wa-note code { background: rgba(37,211,102,0.15); border-radius: 4px; padding: 1px 5px; font-size: 11px; color: #4ade80; }
+    .wa-activate-link { color: #4ade80; font-weight: 500; text-decoration: underline; text-underline-offset: 2px; }
+    .wa-activate-link:hover { color: #86efac; }
     .push-note {
       margin-top: 10px; padding: 10px 14px;
       background: rgba(201,168,76,0.07); border: 1px solid rgba(201,168,76,0.2);
@@ -200,7 +205,7 @@
     /* ── FAQ ── */
     .faq-item { margin-bottom: 20px; }
     .faq-q { font-size: 15px; font-weight: 500; color: var(--gold); margin-bottom: 4px; }
-    .faq-a { font-size: 15px; color: rgba(245,240,232,0.7); line-height: 1.7; }
+    .faq-a { font-size: 15px; color: rgba(245,240,232,0.88); line-height: 1.7; }
     .badge { display: inline-flex; align-items: center; gap: 7px; background: rgba(255,255,255,0.04); border: 1px solid var(--border); border-radius: 20px; padding: 5px 12px; font-size: 12px; color: var(--muted); margin-top: 16px; }
     .badge-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); }
 
@@ -213,8 +218,8 @@
     #toast.info{ border-color: rgba(201,168,76,0.4);  color: var(--gold-lt); }
 
     /* ── Footer ── */
-    footer { text-align: center; margin-top: 56px; font-size: 13px; color: rgba(122,135,153,0.35); line-height: 1.8; }
-    footer span { color: var(--gold-dk); }
+    footer { text-align: center; margin-top: 56px; font-size: 13px; color: rgba(157,170,184,0.7); line-height: 1.8; }
+    footer span { color: var(--gold); }
 
     /* ── Fade-in ── */
     .fade { opacity: 0; transform: translateY(18px); transition: opacity 0.6s ease, transform 0.6s ease; }
@@ -272,9 +277,13 @@
       <div class="field">
         <label class="field-label">Notify me via</label>
         <div class="radio-group">
-          <div class="radio-opt" id="opt-email"    onclick="pickMethod('email')">✉️ &nbsp;Email</div>
-          <div class="radio-opt" id="opt-whatsapp" onclick="pickMethod('whatsapp')">💬 &nbsp;WhatsApp</div>
-          <div class="radio-opt combo-opt" id="opt-email_whatsapp" onclick="pickMethod('email_whatsapp')">✉️+💬 Email &amp; WhatsApp</div>
+          <div class="radio-opt" id="opt-email"              onclick="pickMethod('email')">✉️ &nbsp;Email</div>
+          <div class="radio-opt" id="opt-whatsapp"           onclick="pickMethod('whatsapp')">💬 &nbsp;WhatsApp</div>
+          <div class="radio-opt" id="opt-push"               onclick="pickMethod('push')">🔔 &nbsp;Push</div>
+          <div class="radio-opt combo-opt" id="opt-email_whatsapp"      onclick="pickMethod('email_whatsapp')">✉️+💬 Email &amp; WhatsApp</div>
+          <div class="radio-opt combo-opt" id="opt-email_push"          onclick="pickMethod('email_push')">✉️+🔔 Email &amp; Push</div>
+          <div class="radio-opt combo-opt" id="opt-whatsapp_push"       onclick="pickMethod('whatsapp_push')">💬+🔔 WhatsApp &amp; Push</div>
+          <div class="radio-opt combo-opt" id="opt-email_whatsapp_push" onclick="pickMethod('email_whatsapp_push')">✉️+💬+🔔 All Three</div>
         </div>
       </div>
 
@@ -284,16 +293,23 @@
       </div>
 
       <div class="field sub-field" id="f-wa-wrap">
-        <label class="field-label" for="f-wa">WhatsApp Number (with country code)</label>
-        <input type="tel" id="f-wa" placeholder="+1 212 555 0100" autocomplete="tel" />
+        <label class="field-label" for="f-wa">WhatsApp Number</label>
+        <input type="tel" id="f-wa" placeholder="+1 212 555 0100 (include country code)" autocomplete="tel" />
         <div class="wa-note">
-          💡 <strong>First time?</strong> Send <code>join tehillim</code> to <strong>+1 415 523 8886</strong> on WhatsApp once to activate alerts.
+          💡 <strong>First time?</strong> You need to activate WhatsApp alerts once —
+          <a href="https://wa.me/18148940446?text=Join%20tehillim" target="_blank" rel="noopener" class="wa-activate-link">tap here to send the activation message automatically</a>.
         </div>
+      </div>
+
+      <div class="field sub-field" id="f-phone-wrap">
+        <label class="field-label" for="f-phone">Phone Number (with country code)</label>
+        <input type="tel" id="f-phone" placeholder="+1 212 555 0100" autocomplete="tel" />
       </div>
 
       <div class="field sub-field" id="f-push-wrap">
         <div class="push-note">
-          🔔 <strong>Browser push notifications</strong> — you'll be asked to allow notifications after signing up. Works on Chrome, Firefox, Edge, and Android. Not supported on iOS Safari.
+          🔔 <strong>Browser push notifications</strong> — works on Chrome, Firefox, Edge (desktop &amp; Android). You'll be asked to allow notifications after signing up.<br><br>
+          <span style="color:#ff6b74; font-weight:600;">⚠️ Does NOT work on iPhone or iPad.</span> If you're on iOS, please choose Email or WhatsApp instead.
         </div>
       </div>
 
@@ -381,7 +397,7 @@
     </div>
     <div class="faq-item" style="margin-top:18px">
       <div class="faq-q">💬 How does WhatsApp work?</div>
-      <div class="faq-a">We use the Twilio WhatsApp API. During the free sandbox phase you send one opt-in message to activate — instructions are in your welcome message. In production, alerts arrive directly with no opt-in required.</div>
+      <div class="faq-a">We use the Twilio WhatsApp API. You need to activate once — <a href="https://wa.me/18148940446?text=Join%20tehillim" target="_blank" rel="noopener" style="color:var(--gold);text-decoration:underline">tap here to send the activation message</a>. Alerts will then arrive directly to your WhatsApp.</div>
     </div>
     <div class="faq-item" style="margin-top:18px">
       <div class="faq-q">📖 What should I say?</div>
@@ -407,9 +423,13 @@
     <div>Built with intention. Powered by prayer.</div>
     <div style="margin-top:4px"><span>Tehillim for Tilim</span> &nbsp;·&nbsp; תהילים לטילים</div>
     <div style="margin-top:4px">עם ישראל חי</div>
-    <div style="margin-top:10px"><a href="/unsubscribe" style="color:var(--gold-dk); font-size:11px; text-decoration:none; letter-spacing:0.06em;">Manage / Unsubscribe</a></div>
-    <div style="margin-top:10px; font-size:11px; color:rgba(122,135,153,0.25);">A project from Ayin B'Ayin Org</div>
-    <div style="margin-top:6px; font-size:11px; color:rgba(122,135,153,0.25);">For suggestions or feedback: <a href="mailto:tehillimfortilim@gmail.com" style="color:rgba(201,168,76,0.35); text-decoration:none;">tehillimfortilim@gmail.com</a></div>
+    <div style="margin-top:10px"><a href="/unsubscribe" style="color:var(--gold); font-size:12px; text-decoration:none; letter-spacing:0.06em;">Manage / Unsubscribe</a></div>
+    <div style="margin-top:10px; display:flex; justify-content:center; gap:18px; flex-wrap:wrap;">
+      <a href="/privacy" style="color:var(--gold); font-size:12px; text-decoration:none;">Privacy Policy</a>
+      <a href="/terms"   style="color:var(--gold); font-size:12px; text-decoration:none;">Terms of Service</a>
+    </div>
+    <div style="margin-top:10px; font-size:12px; color:rgba(157,170,184,0.7);">A project from Ayin B'Ayin Org</div>
+    <div style="margin-top:6px; font-size:12px; color:rgba(157,170,184,0.7);">For suggestions or feedback: <a href="mailto:tehillimfortilim@gmail.com" style="color:var(--gold); text-decoration:none;">tehillimfortilim@gmail.com</a></div>
   </footer>
 
 </div>
@@ -462,9 +482,10 @@ function bumpCount(){ animateCount((_displayed||getLocal())+1); }
 
 /* ── Form ── */
 let notifyMethod = null;
-const ALL_OPTS   = ['email','whatsapp','email_whatsapp'];
-const needsEmail = m => ['email','email_whatsapp'].includes(m);
-const needsWA    = m => ['whatsapp','email_whatsapp'].includes(m);
+const ALL_OPTS   = ['email','whatsapp','push','email_whatsapp','email_push','whatsapp_push','email_whatsapp_push'];
+const needsEmail = m => ['email','email_whatsapp','email_push','email_whatsapp_push'].includes(m);
+const needsWA    = m => ['whatsapp','email_whatsapp','whatsapp_push','email_whatsapp_push'].includes(m);
+const needsSMS   = m => false;
 const needsPush  = m => ['push','email_push','whatsapp_push','email_whatsapp_push'].includes(m);
 
 function pickMethod(m){
@@ -472,6 +493,7 @@ function pickMethod(m){
   ALL_OPTS.forEach(k => { const el=document.getElementById('opt-'+k); if(el) el.classList.toggle('on', k===m); });
   document.getElementById('f-email-wrap').classList.toggle('on', needsEmail(m));
   document.getElementById('f-wa-wrap').classList.toggle('on', needsWA(m));
+  document.getElementById('f-phone-wrap').classList.toggle('on', needsSMS(m));
   document.getElementById('f-push-wrap').classList.toggle('on', needsPush(m));
 }
 
@@ -479,19 +501,33 @@ async function handleSignup(){
   const name  = document.getElementById('f-name').value.trim();
   const email = document.getElementById('f-email').value.trim();
   const wa    = document.getElementById('f-wa').value.trim();
+  const phone = document.getElementById('f-phone').value.trim();
 
   if(!name)         { shake('f-name');  toast('Please enter your name','err'); return; }
   if(!notifyMethod) { toast('Choose how to be notified','err'); return; }
   if(needsEmail(notifyMethod) && !validEmail(email)) { shake('f-email'); toast('Please enter a valid email','err'); return; }
   if(needsWA(notifyMethod)    && wa.length<7)        { shake('f-wa');    toast('Please enter your WhatsApp number','err'); return; }
+  if(needsSMS(notifyMethod)   && phone.length<7)     { shake('f-phone'); toast('Please enter your phone number','err'); return; }
 
   const btn = document.getElementById('signup-btn');
   btn.disabled=true; btn.textContent='Signing up…';
 
+  // Request push permission NOW — must happen directly from the click gesture
+  // before any async network calls, otherwise browsers block the prompt
+  let pushPermission = null;
+  if (needsPush(notifyMethod) && 'Notification' in window) {
+    pushPermission = await Notification.requestPermission();
+    if (pushPermission !== 'granted') {
+      toast('Push permission denied — choose Email or WhatsApp instead', 'err');
+      btn.disabled=false; btn.textContent='Sign Me Up · עם ישראל חי';
+      return;
+    }
+  }
+
   try {
     const res = await fetch('/api/subscribe', {
       method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ name, method:notifyMethod, email:email||null, phone:null, whatsapp:wa||null }),
+      body: JSON.stringify({ name, method:notifyMethod, email:email||null, phone:needsSMS(notifyMethod)?phone:null, whatsapp:needsWA(notifyMethod)?wa:null }),
     });
     const data = await res.json();
     if(!data.ok){ btn.disabled=false; btn.textContent='Sign Me Up · עם ישראל חי'; toast(data.error||'Something went wrong','err'); return; }
@@ -500,7 +536,7 @@ async function handleSignup(){
     toast("You're signed up! 🕊️",'ok');
     bumpCount();
     refreshStatus();
-    if(needsPush(notifyMethod)) requestPush(data.id);
+    if(needsPush(notifyMethod) && pushPermission === 'granted') requestPush(data.id);
   } catch(e) {
     btn.disabled=false; btn.textContent='Sign Me Up · עם ישראל חי';
     toast('Connection error — please try again','err');

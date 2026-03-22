@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin — Tehillim for Tilim</title>
+  <link href="https://fonts.googleapis.com/css2?family=Frank+Ruhl+Libre:wght@300;400;700;900&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --navy:    #0b1120;
+      --surface: #151e30;
+      --surface2:#1c2740;
+      --border:  rgba(255,255,255,0.07);
+      --gold:    #c9a84c;
+      --gold-lt: #e8c97a;
+      --red:     #e63946;
+      --green:   #4ade80;
+      --white:   #f5f0e8;
+      --muted:   #7a8799;
+      --radius:  12px;
+      --font-h:  'Frank Ruhl Libre', Georgia, serif;
+      --font-b:  'DM Sans', sans-serif;
+    }
+    body {
+      background: var(--navy); color: var(--white);
+      font-family: var(--font-b); font-weight: 400;
+      min-height: 100vh; padding: 32px 20px;
+    }
+
+    /* ── Login screen ── */
+    #login-screen {
+      display: flex; align-items: center; justify-content: center;
+      min-height: 80vh;
+    }
+    .login-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 40px 36px; width: 100%; max-width: 380px;
+      text-align: center;
+    }
+    .login-card .logo {
+      font-family: var(--font-h); font-size: 26px; font-weight: 900; margin-bottom: 6px;
+      background: linear-gradient(150deg, var(--gold-lt) 0%, var(--gold) 55%, #a07828 100%);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    }
+    .login-card .subtitle { color: var(--muted); font-size: 13px; margin-bottom: 28px; }
+    .login-card input {
+      width: 100%; background: rgba(255,255,255,0.04); border: 1px solid var(--border);
+      border-radius: 9px; color: var(--white); font-family: var(--font-b);
+      font-size: 15px; padding: 12px 16px; outline: none; margin-bottom: 12px;
+      transition: border-color 0.2s;
+    }
+    .login-card input:focus { border-color: var(--gold); }
+    .login-card .err { color: #ff6b74; font-size: 13px; margin-top: 6px; }
+
+    /* ── Dashboard ── */
+    #dashboard { display: none; max-width: 1100px; margin: 0 auto; }
+
+    .top-bar {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 28px; flex-wrap: wrap; gap: 12px;
+    }
+    .top-bar .logo {
+      font-family: var(--font-h); font-size: 22px; font-weight: 900;
+      background: linear-gradient(150deg, var(--gold-lt) 0%, var(--gold) 55%, #a07828 100%);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    }
+    .top-bar .actions { display: flex; gap: 10px; align-items: center; }
+    .btn-sm {
+      background: rgba(201,168,76,0.12); border: 1px solid rgba(201,168,76,0.3);
+      border-radius: 8px; color: var(--gold-lt); font-family: var(--font-b);
+      font-size: 13px; padding: 7px 14px; cursor: pointer; transition: background 0.15s;
+    }
+    .btn-sm:hover { background: rgba(201,168,76,0.22); }
+
+    /* Stats row */
+    .stats-row { display: flex; gap: 14px; margin-bottom: 24px; flex-wrap: wrap; }
+    .stat-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 18px 22px; flex: 1; min-width: 130px;
+    }
+    .stat-card .val {
+      font-family: var(--font-h); font-size: 32px; font-weight: 900; color: var(--gold-lt);
+      line-height: 1;
+    }
+    .stat-card .lbl { font-size: 12px; color: var(--muted); margin-top: 5px; text-transform: uppercase; letter-spacing: 0.08em; }
+
+    /* Filter bar */
+    .filter-bar {
+      display: flex; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; align-items: center;
+    }
+    .filter-bar input {
+      background: rgba(255,255,255,0.04); border: 1px solid var(--border);
+      border-radius: 8px; color: var(--white); font-family: var(--font-b);
+      font-size: 14px; padding: 8px 14px; outline: none; width: 220px;
+      transition: border-color 0.2s;
+    }
+    .filter-bar input:focus { border-color: var(--gold); }
+    .filter-bar select {
+      background: rgba(255,255,255,0.04); border: 1px solid var(--border);
+      border-radius: 8px; color: var(--white); font-family: var(--font-b);
+      font-size: 14px; padding: 8px 14px; outline: none; cursor: pointer;
+    }
+    .filter-bar select option { background: #1c2740; }
+    .count-label { font-size: 13px; color: var(--muted); margin-left: auto; }
+
+    /* Table */
+    .table-wrap {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); overflow-x: auto;
+    }
+    table { width: 100%; border-collapse: collapse; font-size: 14px; }
+    thead th {
+      padding: 13px 16px; text-align: left; font-size: 11px; font-weight: 500;
+      letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted);
+      border-bottom: 1px solid var(--border); white-space: nowrap;
+    }
+    tbody tr { border-bottom: 1px solid var(--border); transition: background 0.1s; }
+    tbody tr:last-child { border-bottom: none; }
+    tbody tr:hover { background: rgba(255,255,255,0.03); }
+    tbody td { padding: 13px 16px; vertical-align: middle; }
+
+    .badge {
+      display: inline-block; font-size: 11px; font-weight: 500; padding: 3px 9px;
+      border-radius: 20px; white-space: nowrap;
+    }
+    .badge-email    { background: rgba(99,179,237,0.15); color: #63b3ed; }
+    .badge-whatsapp { background: rgba(74,222,128,0.15); color: #4ade80; }
+    .badge-sms      { background: rgba(251,191,36,0.15); color: #fbbf24; }
+    .badge-all      { background: rgba(201,168,76,0.2);  color: var(--gold-lt); }
+
+    .status-dot {
+      display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px;
+    }
+    .dot-active   { background: var(--green); }
+    .dot-inactive { background: var(--muted); }
+
+    .contact { font-size: 13px; color: var(--muted); line-height: 1.6; }
+    .contact span { display: block; }
+
+    .date { font-size: 13px; color: var(--muted); white-space: nowrap; }
+
+    .empty { text-align: center; padding: 48px; color: var(--muted); }
+
+    /* Inline edit */
+    .btn-edit {
+      background: rgba(255,255,255,0.05); border: 1px solid var(--border);
+      border-radius: 6px; color: var(--muted); font-size: 12px; padding: 4px 10px;
+      cursor: pointer; transition: all 0.15s;
+    }
+    .btn-edit:hover { border-color: var(--gold); color: var(--gold-lt); }
+    .edit-row td { background: var(--surface2); }
+    .edit-row input {
+      background: rgba(255,255,255,0.06); border: 1px solid var(--border);
+      border-radius: 6px; color: var(--white); font-family: var(--font-b);
+      font-size: 13px; padding: 6px 10px; width: 100%; outline: none;
+      transition: border-color 0.15s;
+    }
+    .edit-row input:focus { border-color: var(--gold); }
+    .edit-row label { font-size: 11px; color: var(--muted); display: block; margin-bottom: 3px; margin-top: 8px; }
+    .edit-actions { display: flex; gap: 8px; margin-top: 12px; }
+    .btn-save { background: linear-gradient(135deg,#d4a93c,#9a6e18); border: none; border-radius: 7px; color: #0b1120; font-size: 13px; font-weight: 600; padding: 7px 18px; cursor: pointer; }
+    .btn-cancel { background: rgba(255,255,255,0.05); border: 1px solid var(--border); border-radius: 7px; color: var(--muted); font-size: 13px; padding: 7px 14px; cursor: pointer; }
+    .btn-remove { background: rgba(230,57,70,0.12); border: 1px solid rgba(230,57,70,0.3); border-radius: 6px; color: #ff6b74; font-size: 12px; padding: 4px 10px; cursor: pointer; transition: all 0.15s; }
+    .btn-remove:hover { background: rgba(230,57,70,0.25); }
+    .save-msg { font-size: 12px; color: var(--green); margin-top: 6px; }
+    .save-err { font-size: 12px; color: #ff6b74; margin-top: 6px; }
+  </style>
+</head>
+<body>
+
+<!-- Login -->
+<div id="login-screen">
+  <div class="login-card">
+    <div class="logo">תהילים לטילים</div>
+    <div class="subtitle">Admin Dashboard</div>
+    <input type="password" id="key-input" placeholder="Enter admin key" autocomplete="current-password" />
+    <div class="err" id="login-err"></div>
+    <br>
+    <button class="btn-sm" style="width:100%;padding:11px;font-size:14px" onclick="login()">Sign In</button>
+  </div>
+</div>
+
+<!-- Dashboard -->
+<div id="dashboard">
+  <div class="top-bar">
+    <div class="logo">תהילים לטילים — Admin</div>
+    <div class="actions">
+      <button class="btn-sm" onclick="load()">↻ Refresh</button>
+      <button class="btn-sm" onclick="exportCSV()">⬇ Export CSV</button>
+    </div>
+  </div>
+
+  <div class="stats-row" id="stats-row"></div>
+
+  <div class="filter-bar">
+    <input type="text" id="search" placeholder="Search name or contact…" oninput="render()" />
+    <select id="filter-method" onchange="render()">
+      <option value="">All methods</option>
+      <option value="email">Email</option>
+      <option value="whatsapp">WhatsApp</option>
+      <option value="sms">SMS</option>
+      <option value="email_whatsapp">Email + WhatsApp</option>
+      <option value="email_sms">Email + SMS</option>
+      <option value="sms_whatsapp">SMS + WhatsApp</option>
+      <option value="all">All Three</option>
+    </select>
+    <select id="filter-status" onchange="render()">
+      <option value="active">Active only</option>
+      <option value="all">Active + Inactive</option>
+    </select>
+    <span class="count-label" id="count-label"></span>
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Status</th>
+          <th>Name</th>
+          <th>Method</th>
+          <th>Source</th>
+          <th>Contact</th>
+          <th>Signed Up</th>
+          <th>Last Notified</th>
+        </tr>
+      </thead>
+      <tbody id="tbody"></tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+let allSubs = [];
+let adminKey = '';
+
+document.getElementById('key-input').addEventListener('keydown', e => { if (e.key === 'Enter') login(); });
+
+async function login() {
+  const key = document.getElementById('key-input').value.trim();
+  if (!key) return;
+  const res = await fetch('/api/admin?key=' + encodeURIComponent(key));
+  if (res.status === 403) { document.getElementById('login-err').textContent = 'Invalid key.'; return; }
+  adminKey = key;
+  const data = await res.json();
+  allSubs = data.subscribers || [];
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('dashboard').style.display = 'block';
+  renderStats();
+  render();
+}
+
+async function load() {
+  const res = await fetch('/api/admin?key=' + encodeURIComponent(adminKey));
+  const data = await res.json();
+  allSubs = data.subscribers || [];
+  renderStats();
+  render();
+}
+
+function renderStats() {
+  const active = allSubs.filter(s => s.active);
+  const byMethod = {};
+  active.forEach(s => { byMethod[s.method] = (byMethod[s.method] || 0) + 1; });
+
+  const emailCount = active.filter(s => s.method && s.method.includes('email')).length;
+  const waCount    = active.filter(s => s.method && (s.method.includes('whatsapp') || s.method === 'all')).length;
+  const smsCount   = active.filter(s => s.method && (s.method.includes('sms') || s.method === 'all')).length;
+
+  document.getElementById('stats-row').innerHTML = `
+    <div class="stat-card"><div class="val">${active.length}</div><div class="lbl">Active Subscribers</div></div>
+    <div class="stat-card"><div class="val">${emailCount}</div><div class="lbl">Get Email</div></div>
+    <div class="stat-card"><div class="val">${waCount}</div><div class="lbl">Get WhatsApp</div></div>
+    <div class="stat-card"><div class="val">${smsCount}</div><div class="lbl">Get SMS</div></div>
+    <div class="stat-card"><div class="val">${allSubs.length}</div><div class="lbl">Total (incl. unsub)</div></div>
+  `;
+}
+
+function render() {
+  const search       = document.getElementById('search').value.toLowerCase();
+  const filterMethod = document.getElementById('filter-method').value;
+  const filterStatus = document.getElementById('filter-status').value;
+
+  let rows = allSubs.filter(s => {
+    if (filterStatus === 'active' && !s.active) return false;
+    if (filterMethod && s.method !== filterMethod) return false;
+    if (search) {
+      const hay = [s.name, s.email, s.phone, s.whatsapp].join(' ').toLowerCase();
+      if (!hay.includes(search)) return false;
+    }
+    return true;
+  });
+
+  // Sort: active first, then by signup date desc
+  rows.sort((a, b) => {
+    if (a.active !== b.active) return a.active ? -1 : 1;
+    return new Date(b.createdAt) - new Date(a.createdAt);
+  });
+
+  document.getElementById('count-label').textContent = `${rows.length} subscriber${rows.length !== 1 ? 's' : ''}`;
+
+  const tbody = document.getElementById('tbody');
+  if (!rows.length) {
+    tbody.innerHTML = '<tr><td colspan="7" class="empty">No subscribers found.</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = rows.map(s => {
+    const statusDot = s.active
+      ? '<span class="status-dot dot-active"></span>Active'
+      : '<span class="status-dot dot-inactive"></span><span style="color:var(--muted)">Inactive</span>';
+
+    const methodBadge = methodLabel(s.method);
+
+    const contact = [
+      s.email    ? `✉️ ${s.email}` : '',
+      s.whatsapp ? `💬 ${s.whatsapp}` : '',
+      s.phone && s.phone !== s.whatsapp ? `📱 ${s.phone}` : '',
+    ].filter(Boolean).map(c => `<span>${c}</span>`).join('') || '<span style="color:var(--muted)">—</span>';
+
+    const signedUp    = fmtDate(s.createdAt);
+    const lastNotified = s.notifiedAt ? fmtDate(s.notifiedAt) : '<span style="color:var(--muted)">Never</span>';
+
+    const sourceBadge = s.source === 'whatsapp_direct'
+      ? '<span class="badge" style="background:rgba(74,222,128,0.15);color:#4ade80">💬 WhatsApp Direct</span>'
+      : '<span class="badge" style="background:rgba(255,255,255,0.06);color:var(--muted)">🌐 Website</span>';
+
+    return `<tr id="row-${s.id}">
+      <td>${statusDot}</td>
+      <td><strong>${esc(s.name)}</strong></td>
+      <td>${methodBadge}</td>
+      <td>${sourceBadge}</td>
+      <td><div class="contact">${contact}</div></td>
+      <td class="date">${signedUp}</td>
+      <td class="date" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+        ${lastNotified}
+        <button class="btn-edit" onclick="openEdit('${s.id}')">✏️ Edit</button>
+        <button class="btn-remove" onclick="removeSub('${s.id}', '${esc(s.name)}')">✕ Remove</button>
+      </td>
+    </tr>
+    <tr id="edit-${s.id}" class="edit-row" style="display:none">
+      <td colspan="7" style="padding:16px 20px">
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px">
+          <div>
+            <label>Name</label>
+            <input id="edit-name-${s.id}" value="${esc(s.name)}" placeholder="Name" />
+          </div>
+          <div>
+            <label>Email</label>
+            <input id="edit-email-${s.id}" value="${esc(s.email||'')}" placeholder="email@example.com" />
+          </div>
+          <div>
+            <label>WhatsApp Number</label>
+            <input id="edit-whatsapp-${s.id}" value="${esc(s.whatsapp||'')}" placeholder="+1 212 555 0100" />
+          </div>
+          <div>
+            <label>Phone (SMS)</label>
+            <input id="edit-phone-${s.id}" value="${esc(s.phone||'')}" placeholder="+1 212 555 0100" />
+          </div>
+        </div>
+        <div class="edit-actions">
+          <button class="btn-save" onclick="saveEdit('${s.id}')">Save Changes</button>
+          <button class="btn-cancel" onclick="closeEdit('${s.id}')">Cancel</button>
+        </div>
+        <div id="edit-msg-${s.id}"></div>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function openEdit(id) {
+  document.getElementById('edit-' + id).style.display = '';
+}
+
+function closeEdit(id) {
+  document.getElementById('edit-' + id).style.display = 'none';
+  document.getElementById('edit-msg-' + id).textContent = '';
+}
+
+async function saveEdit(id) {
+  const name     = document.getElementById('edit-name-' + id).value.trim();
+  const email    = document.getElementById('edit-email-' + id).value.trim();
+  const whatsapp = document.getElementById('edit-whatsapp-' + id).value.trim();
+  const phone    = document.getElementById('edit-phone-' + id).value.trim();
+  const msgEl    = document.getElementById('edit-msg-' + id);
+
+  const res = await fetch(`/api/admin/subscriber/${id}/update?key=${encodeURIComponent(adminKey)}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name, email: email||null, whatsapp: whatsapp||null, phone: phone||null }),
+  });
+  const data = await res.json();
+
+  if (data.ok) {
+    msgEl.className = 'save-msg'; msgEl.textContent = '✓ Saved';
+    // Update local data and re-render after short delay
+    const idx = allSubs.findIndex(s => s.id === id);
+    if (idx !== -1) { allSubs[idx] = { ...allSubs[idx], name, email: email||null, whatsapp: whatsapp||null, phone: phone||null }; }
+    setTimeout(() => { renderStats(); render(); }, 800);
+  } else {
+    msgEl.className = 'save-err'; msgEl.textContent = '✗ ' + (data.error || 'Save failed');
+  }
+}
+
+async function removeSub(id, name) {
+  if (!confirm(`Remove "${name}"? This will unsubscribe them immediately.`)) return;
+  const res = await fetch('/api/unsubscribe', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ id }),
+  });
+  const data = await res.json();
+  if (data.ok) {
+    const idx = allSubs.findIndex(s => s.id === id);
+    if (idx !== -1) allSubs[idx].active = false;
+    renderStats();
+    render();
+  } else {
+    alert('Failed to remove subscriber.');
+  }
+}
+
+function methodLabel(m) {
+  const map = {
+    email:              '<span class="badge badge-email">✉️ Email</span>',
+    whatsapp:           '<span class="badge badge-whatsapp">💬 WhatsApp</span>',
+    sms:                '<span class="badge badge-sms">📱 SMS</span>',
+    email_whatsapp:     '<span class="badge badge-all">✉️+💬 Email & WA</span>',
+    email_sms:          '<span class="badge badge-all">✉️+📱 Email & SMS</span>',
+    sms_whatsapp:       '<span class="badge badge-all">📱+💬 SMS & WA</span>',
+    all:                '<span class="badge badge-all">✉️+💬+📱 All</span>',
+    email_push:         '<span class="badge badge-email">✉️+🔔 Email & Push</span>',
+    push:               '<span class="badge badge-sms">🔔 Push</span>',
+  };
+  return map[m] || `<span class="badge" style="background:rgba(255,255,255,0.07)">${esc(m)}</span>`;
+}
+
+function fmtDate(iso) {
+  if (!iso) return '—';
+  const d = new Date(iso);
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+    + ' ' + d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+}
+
+function esc(s) {
+  return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function exportCSV() {
+  const filterStatus = document.getElementById('filter-status').value;
+  const rows = allSubs.filter(s => filterStatus === 'active' ? s.active : true);
+  const header = ['Name','Method','Source','Email','Phone','WhatsApp','Active','Signed Up','Last Notified'];
+  const lines = [header.join(','), ...rows.map(s => [
+    csvCell(s.name), csvCell(s.method), csvCell(s.source || 'website'),
+    csvCell(s.email), csvCell(s.phone), csvCell(s.whatsapp),
+    s.active ? 'Yes' : 'No', csvCell(s.createdAt), csvCell(s.notifiedAt)
+  ].join(','))];
+  const blob = new Blob([lines.join('\n')], { type: 'text/csv' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'subscribers_' + new Date().toISOString().slice(0,10) + '.csv';
+  a.click();
+}
+
+function csvCell(v) {
+  if (!v) return '';
+  return '"' + String(v).replace(/"/g, '""') + '"';
+}
+</script>
+</body>
+</html>
