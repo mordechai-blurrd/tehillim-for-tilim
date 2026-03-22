@@ -161,6 +161,13 @@ class AlertPoller extends EventEmitter {
 
   // ── Handle parsed alert data ────────────────────────────
   _handleData(raw) {
+    // Only process rocket/missile alerts (cat 1). Filter out hostile aircraft,
+    // earthquakes, radiological, terror, hazmat, tsunami, etc.
+    if (raw && raw.cat != null && String(raw.cat) !== '1') {
+      console.log(`[Poller] Skipping non-rocket alert (cat=${raw.cat}): ${raw.title || ''}`);
+      return;
+    }
+
     if (!raw || !raw.data || raw.data.length === 0) {
       if (this._active && !this._clearTimer) {
         this._clearTimer = setTimeout(() => this._emitClear(), CLEAR_AFTER_MS);

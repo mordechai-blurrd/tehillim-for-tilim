@@ -15,10 +15,11 @@ if (self.FIREBASE_CONFIG && self.FIREBASE_CONFIG.projectId) {
     const body  = payload.notification?.body  || 'Stop what you are doing and say Tehillim now.';
     const link  = payload.fcmOptions?.link    || self.location.origin;
 
+    const origin = self.location.origin;
     self.registration.showNotification(title, {
       body,
-      icon:               '/icon-192.png',
-      badge:              '/icon-192.png',
+      icon:               `${origin}/icon-192.png`,
+      badge:              `${origin}/icon-192.png`,
       requireInteraction: true,
       vibrate:            [300, 100, 300, 100, 300],
       data:               { url: link },

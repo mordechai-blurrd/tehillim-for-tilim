@@ -629,7 +629,7 @@ function _registerOnMessage() {
     navigator.serviceWorker.ready.then(reg => {
       reg.showNotification(title, {
         body,
-        icon:               '/icon-192.png',
+        icon:               `${location.origin}/icon-192.png`,
         requireInteraction: true,
         vibrate:            [300, 100, 300, 100, 300],
         data:               { url: '/' },

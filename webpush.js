@@ -53,7 +53,7 @@ async function dispatch(alertPayload) {
     },
     webpush: {
       notification: {
-        icon:                '/icon-192.png',
+        icon:                `${link}/icon-192.png`,  // must be absolute URL for FCM
         requireInteraction:  true,
         vibrate:             [300, 100, 300, 100, 300],
       },
