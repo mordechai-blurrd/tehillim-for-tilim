@@ -11,15 +11,16 @@ if (self.FIREBASE_CONFIG && self.FIREBASE_CONFIG.projectId) {
   const messaging = firebase.messaging();
 
   messaging.onBackgroundMessage(payload => {
-    const title = payload.notification?.title || '🚨 Red Alert — Say Tehillim Now';
-    const body  = payload.notification?.body  || 'Stop what you are doing and say Tehillim now.';
-    const link  = payload.fcmOptions?.link    || self.location.origin;
+    // Data-only messages: read from payload.data (no payload.notification)
+    const title  = payload.data?.title || '🚨 Red Alert — Say Tehillim Now';
+    const body   = payload.data?.body  || 'Stop what you are doing and say Tehillim now.';
+    const icon   = payload.data?.icon  || `${self.location.origin}/icon-192.png`;
+    const link   = payload.data?.link  || self.location.origin;
 
-    const origin = self.location.origin;
     self.registration.showNotification(title, {
       body,
-      icon:               `${origin}/icon-192.png`,
-      badge:              `${origin}/icon-192.png`,
+      icon,
+      badge:              icon,
       requireInteraction: true,
       vibrate:            [300, 100, 300, 100, 300],
       data:               { url: link },

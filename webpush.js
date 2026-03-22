@@ -46,17 +46,19 @@ async function dispatch(alertPayload) {
     return { sent: 0, failed: 0 };
   }
 
+  // Data-only message: no top-level `notification` field.
+  // If `notification` is present, Chrome auto-shows a notification AND the
+  // service worker's onBackgroundMessage also shows one → duplicates.
+  // With data-only, display is handled exclusively by the SW / foreground handler.
   const message = {
-    notification: {
+    data: {
       title: '🚨 Red Alert — Say Tehillim Now',
       body,
+      icon:  `${link}/icon-192.png`,
+      link,
     },
     webpush: {
-      notification: {
-        icon:                `${link}/icon-192.png`,  // must be absolute URL for FCM
-        requireInteraction:  true,
-        vibrate:             [300, 100, 300, 100, 300],
-      },
+      headers:    { Urgency: 'high' },
       fcmOptions: { link },
     },
     tokens,

@@ -624,12 +624,14 @@ function _registerOnMessage() {
   _fcmMessaging.onMessage(payload => {
     // Page is in foreground — service worker won't fire onBackgroundMessage,
     // so we show the notification manually via the SW registration.
-    const title = payload.notification?.title || '🚨 Red Alert — Say Tehillim Now';
-    const body  = payload.notification?.body  || 'Stop and say Tehillim now.';
+    // Read from payload.data (data-only messages — no payload.notification).
+    const title = payload.data?.title || '🚨 Red Alert — Say Tehillim Now';
+    const body  = payload.data?.body  || 'Stop and say Tehillim now.';
+    const icon  = payload.data?.icon  || `${location.origin}/icon-192.png`;
     navigator.serviceWorker.ready.then(reg => {
       reg.showNotification(title, {
         body,
-        icon:               `${location.origin}/icon-192.png`,
+        icon,
         requireInteraction: true,
         vibrate:            [300, 100, 300, 100, 300],
         data:               { url: '/' },
