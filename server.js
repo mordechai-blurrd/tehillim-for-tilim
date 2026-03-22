@@ -329,7 +329,7 @@ app.get('/api/admin', (req, res) => {
     totalSubscribers:  subs.length,
     activeSubscribers: subs.filter(s => s.active).length,
     recentAlerts:      alertLog.slice(0, 10),
-    subscribers: IS_DEV ? subs : subs.map(s => ({ id: s.id, name: s.name, method: s.method, createdAt: s.createdAt, active: s.active })),
+    subscribers: subs.map(s => ({ id: s.id, name: s.name, method: s.method, source: s.source, email: s.email, phone: s.phone, whatsapp: s.whatsapp, active: s.active, createdAt: s.createdAt, notifiedAt: s.notifiedAt })),
   });
 });
 
