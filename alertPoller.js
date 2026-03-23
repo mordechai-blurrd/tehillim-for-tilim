@@ -19,12 +19,12 @@ const MAKO_URL  = 'https://www.mako.co.il/Collab/amudanan/alerts.json';
 
 const POLL_MS        = (parseInt(process.env.POLL_INTERVAL_SECONDS) || 5) * 1000;
 
-// Returns false for known non-rocket alert types so they are dropped.
-// Uses a blacklist (not whitelist) so unknown/empty titles are allowed through
-// rather than silently swallowing real rocket alerts.
+// Strict whitelist: only rocket/missile fire alerts pass through.
+// Empty title = oref default (rocket alert), allow.
+// Any non-empty title must explicitly contain rocket/missile terms.
 function isRocketTitle(title) {
-  if (!title) return true; // no title — assume rocket, don't suppress
-  return !/כלי טיס|חדירת|עימות|פירוט התרעה|רעידת אדמה|רדיולוגי|חומרים מסוכנים|צונאמי|פיגוע/.test(title);
+  if (!title) return true;
+  return /רקטות|טילים/.test(title);
 }
 const CLEAR_AFTER_MS = 30_000;
 const SOURCES        = ['oref', 'tzevaadom', 'mako'];
