@@ -19,10 +19,12 @@ const MAKO_URL  = 'https://www.mako.co.il/Collab/amudanan/alerts.json';
 
 const POLL_MS        = (parseInt(process.env.POLL_INTERVAL_SECONDS) || 5) * 1000;
 
-// Whitelist: only alert for rocket/missile fire (cat 1).
-// Filters out hostile aircraft, earthquakes, radiological, hazmat, terror, tsunami.
+// Returns false for known non-rocket alert types so they are dropped.
+// Uses a blacklist (not whitelist) so unknown/empty titles are allowed through
+// rather than silently swallowing real rocket alerts.
 function isRocketTitle(title) {
-  return /רקטות|טילים|ירי/.test(title);
+  if (!title) return true; // no title — assume rocket, don't suppress
+  return !/כלי טיס|חדירת|רעידת אדמה|רדיולוגי|חומרים מסוכנים|צונאמי|פיגוע/.test(title);
 }
 const CLEAR_AFTER_MS = 30_000;
 const SOURCES        = ['oref', 'tzevaadom', 'mako'];
@@ -138,7 +140,7 @@ class AlertPoller extends EventEmitter {
     const title  = latest.title || '';
 
     // Filter: only rocket/missile alerts. Skip hostile aircraft, earthquakes, etc.
-    if (title && !isRocketTitle(title)) {
+    if (!isRocketTitle(title)) {
       console.log(`[Poller] Skipping non-rocket tzevaadom alert: "${title}"`);
       return null;
     }
@@ -165,7 +167,7 @@ class AlertPoller extends EventEmitter {
     if (!data || !Array.isArray(data.data) || data.data.length === 0) return null;
 
     const title = data.title || '';
-    if (title && !isRocketTitle(title)) {
+    if (!isRocketTitle(title)) {
       console.log(`[Poller] Skipping non-rocket mako alert: "${title}"`);
       return null;
     }
