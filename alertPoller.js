@@ -24,7 +24,7 @@ const POLL_MS        = (parseInt(process.env.POLL_INTERVAL_SECONDS) || 5) * 1000
 // rather than silently swallowing real rocket alerts.
 function isRocketTitle(title) {
   if (!title) return true; // no title — assume rocket, don't suppress
-  return !/כלי טיס|חדירת|קו עימות|רעידת אדמה|רדיולוגי|חומרים מסוכנים|צונאמי|פיגוע/.test(title);
+  return !/כלי טיס|חדירת|עימות|פירוט התרעה|רעידת אדמה|רדיולוגי|חומרים מסוכנים|צונאמי|פיגוע/.test(title);
 }
 const CLEAR_AFTER_MS = 30_000;
 const SOURCES        = ['oref', 'tzevaadom', 'mako'];
