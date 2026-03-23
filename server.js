@@ -73,26 +73,21 @@ wss.on('connection', (ws) => {
 
 // ── Poller event handlers ─────────────────────────────────
 
-// Server-level dedup: belt-and-suspenders guard against the poller emitting
-// the same alert twice (e.g. tzevaadom returning a slightly different time field).
-let _lastDispatchId   = null;
+// Server-level dedup: once an alert is dispatched, suppress all further
+// dispatches for DISPATCH_COOLDOWN_MS. This handles the case where an
+// ongoing alert expands to more cities between polls — the area fingerprint
+// changes but it's still the same event.
+const DISPATCH_COOLDOWN_MS = (parseInt(process.env.ALERT_COOLDOWN_SECONDS) || 120) * 1000;
 let _lastDispatchTime = 0;
-let _lastDispatchAreas = '';
 
 poller.on('alert', async (payload) => {
-  const now      = Date.now();
-  const areaKey  = [...(payload.areas || [])].sort().join(',');
-  const sameId   = payload.id === _lastDispatchId;
-  const sameArea = areaKey === _lastDispatchAreas && (now - _lastDispatchTime) < 180_000;
-
-  if (sameId || sameArea) {
-    console.log(`[Server] Duplicate alert suppressed (id=${payload.id})`);
+  const now = Date.now();
+  if (now - _lastDispatchTime < DISPATCH_COOLDOWN_MS) {
+    console.log(`[Server] Alert suppressed — cooldown active (${Math.round((DISPATCH_COOLDOWN_MS - (now - _lastDispatchTime)) / 1000)}s remaining)`);
     return;
   }
 
-  _lastDispatchId    = payload.id;
-  _lastDispatchTime  = now;
-  _lastDispatchAreas = areaKey;
+  _lastDispatchTime = now;
 
   logAlert('alert', payload);
   broadcast('alert', payload);

@@ -180,18 +180,18 @@ class AlertPoller extends EventEmitter {
       this._clearTimer = null;
     }
 
-    const alertId  = raw.id || String(raw.data.join(','));
-    const areaKey  = [...raw.data].sort().join(',');  // stable fingerprint regardless of poll order
-    const ageMs    = this._lastAlertTime ? Date.now() - this._lastAlertTime : Infinity;
+    const alertId = raw.id || String(raw.data.join(','));
+    const ageMs   = this._lastAlertTime ? Date.now() - this._lastAlertTime : Infinity;
 
-    // Suppress duplicate: same ID, OR same area set within 3 minutes (handles tzevaadom
-    // returning slightly different `time` values for the same ongoing alert)
-    const isDuplicate = alertId === this._lastAlertId ||
-                        (areaKey === this._lastAreaKey && ageMs < 180_000);
+    // Suppress if we already emitted an alert within the cooldown window.
+    // Using time-only (not area fingerprint) because an ongoing alert expands
+    // to more cities between polls — the area set changes but it's the same event.
+    const EMIT_COOLDOWN_MS = (parseInt(process.env.ALERT_COOLDOWN_SECONDS) || 120) * 1000;
+    const isDuplicate = alertId === this._lastAlertId || ageMs < EMIT_COOLDOWN_MS;
 
     if (!isDuplicate) {
       this._lastAlertId   = alertId;
-      this._lastAreaKey   = areaKey;
+      this._lastAreaKey   = null;  // no longer used for dedup
       this._lastAlertTime = Date.now();
       this._active        = true;
 
