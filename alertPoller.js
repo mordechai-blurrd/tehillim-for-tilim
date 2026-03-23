@@ -18,6 +18,12 @@ const TZEVA_URL = 'https://api.tzevaadom.co.il/notifications';
 const MAKO_URL  = 'https://www.mako.co.il/Collab/amudanan/alerts.json';
 
 const POLL_MS        = (parseInt(process.env.POLL_INTERVAL_SECONDS) || 5) * 1000;
+
+// Whitelist: only alert for rocket/missile fire (cat 1).
+// Filters out hostile aircraft, earthquakes, radiological, hazmat, terror, tsunami.
+function isRocketTitle(title) {
+  return /רקטות|טילים|ירי/.test(title);
+}
 const CLEAR_AFTER_MS = 30_000;
 const SOURCES        = ['oref', 'tzevaadom', 'mako'];
 const WATCHDOG_MS    = 3 * 60 * 1000;  // check every 3 min
@@ -129,10 +135,18 @@ class AlertPoller extends EventEmitter {
     if (!Array.isArray(data) || data.length === 0) return null;
 
     const latest = data[0];
+    const title  = latest.title || '';
+
+    // Filter: only rocket/missile alerts. Skip hostile aircraft, earthquakes, etc.
+    if (title && !isRocketTitle(title)) {
+      console.log(`[Poller] Skipping non-rocket tzevaadom alert: "${title}"`);
+      return null;
+    }
+
     return {
       id:    String(latest.time || latest.id || Date.now()),
       cat:   '1',
-      title: latest.title || 'ירי רקטות וטילים',
+      title: title || 'ירי רקטות וטילים',
       data:  latest.cities || latest.data || [],
       desc:  latest.instructions || latest.desc || 'היכנסו למרחב המוגן',
     };
@@ -147,13 +161,19 @@ class AlertPoller extends EventEmitter {
     if (!res.ok) throw new Error(`mako HTTP ${res.status}`);
     const data = await res.json();
 
-    // Shape: { id: "timestamp", data: ["city", ...] }
+    // Shape: { id: "timestamp", title: "...", data: ["city", ...] }
     if (!data || !Array.isArray(data.data) || data.data.length === 0) return null;
+
+    const title = data.title || '';
+    if (title && !isRocketTitle(title)) {
+      console.log(`[Poller] Skipping non-rocket mako alert: "${title}"`);
+      return null;
+    }
 
     return {
       id:    String(data.id || Date.now()),
       cat:   '1',
-      title: 'ירי רקטות וטילים',
+      title: title || 'ירי רקטות וטילים',
       data:  data.data,
       desc:  'היכנסו למרחב המוגן',
     };
