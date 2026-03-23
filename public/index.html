@@ -280,17 +280,13 @@
       <div class="field">
         <label class="field-label">Notify me via</label>
         <div class="radio-group">
-          <div class="radio-opt" id="opt-email"              onclick="pickMethod('email')">✉️ &nbsp;Email</div>
           <div class="radio-opt" id="opt-whatsapp"           onclick="pickMethod('whatsapp')">💬 &nbsp;WhatsApp</div>
           <div class="radio-opt" id="opt-push"               onclick="pickMethod('push')">🔔 &nbsp;Push</div>
-          <div class="radio-opt combo-opt" id="opt-email_whatsapp"      onclick="pickMethod('email_whatsapp')">✉️+💬 Email &amp; WhatsApp</div>
-          <div class="radio-opt combo-opt" id="opt-email_push"          onclick="pickMethod('email_push')">✉️+🔔 Email &amp; Push</div>
           <div class="radio-opt combo-opt" id="opt-whatsapp_push"       onclick="pickMethod('whatsapp_push')">💬+🔔 WhatsApp &amp; Push</div>
-          <div class="radio-opt combo-opt" id="opt-email_whatsapp_push" onclick="pickMethod('email_whatsapp_push')">✉️+💬+🔔 All Three</div>
         </div>
       </div>
 
-      <div class="field sub-field" id="f-email-wrap">
+      <div class="field sub-field" id="f-email-wrap" style="display:none">
         <label class="field-label" for="f-email">Email Address</label>
         <input type="email" id="f-email" placeholder="you@example.com" autocomplete="email" />
       </div>
@@ -473,7 +469,7 @@ function bumpCount(){ animateCount((_displayed||getLocal())+1); }
 
 /* ── Form ── */
 let notifyMethod = null;
-const ALL_OPTS   = ['email','whatsapp','push','email_whatsapp','email_push','whatsapp_push','email_whatsapp_push'];
+const ALL_OPTS   = ['whatsapp','push','whatsapp_push'];
 const needsEmail = m => ['email','email_whatsapp','email_push','email_whatsapp_push'].includes(m);
 const needsWA    = m => ['whatsapp','email_whatsapp','whatsapp_push','email_whatsapp_push'].includes(m);
 const needsSMS   = m => false;
