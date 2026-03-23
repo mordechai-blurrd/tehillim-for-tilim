@@ -21,6 +21,8 @@ if (self.FIREBASE_CONFIG && self.FIREBASE_CONFIG.projectId) {
       body,
       icon,
       badge:              icon,
+      tag:                'tzeva-adom',  // replace any existing alert notification
+      renotify:           true,          // still vibrate/sound even when replacing
       requireInteraction: true,
       vibrate:            [300, 100, 300, 100, 300],
       data:               { url: link },

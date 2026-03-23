@@ -632,6 +632,8 @@ function _registerOnMessage() {
       reg.showNotification(title, {
         body,
         icon,
+        tag:                'tzeva-adom',  // replace any existing alert notification
+        renotify:           true,
         requireInteraction: true,
         vibrate:            [300, 100, 300, 100, 300],
         data:               { url: '/' },
