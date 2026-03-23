@@ -122,15 +122,37 @@ async function sendSMS(sub, areaStr, timeStr) {
 
 // ── WhatsApp ───────────────────────────────────────────────
 async function sendWhatsApp(sub, areaStr, timeStr) {
-  const body = buildWhatsAppBody(sub.name, areaStr, timeStr, sub.id);
-  const from = process.env.TWILIO_WHATSAPP_FROM || 'whatsapp:+18148940446';
+  const from        = process.env.TWILIO_WHATSAPP_FROM || 'whatsapp:+18148940446';
+  const templateSid = process.env.WHATSAPP_TEMPLATE_SID; // HX...
 
   if (!twilioClient) { console.log(`[DRY RUN] WhatsApp → ${sub.whatsapp}`); return; }
 
+  // Use approved Meta template if configured — required for outbound messages
+  // outside the 24-hour session window
+  if (templateSid) {
+    try {
+      return await twilioClient.messages.create({
+        from,
+        to:               `whatsapp:${sub.whatsapp}`,
+        contentSid:       templateSid,
+        contentVariables: JSON.stringify({
+          '1': sub.name,
+          '2': areaStr,
+          '3': timeStr,
+          '4': `${BASE_URL}/unsubscribe/${sub.id}`,
+        }),
+      });
+    } catch (templateErr) {
+      console.error(`[Notifier] WhatsApp template failed (code=${templateErr.code}):`, templateErr.message);
+      // Fall through to free-form fallback below
+    }
+  }
+
+  // Fallback: free-form (only works within 24-hour session window)
   return twilioClient.messages.create({
-    body,
+    body: buildWhatsAppBody(sub.name, areaStr, timeStr, sub.id),
     from,
-    to: `whatsapp:${sub.whatsapp}`,  // Twilio requires the whatsapp: prefix
+    to: `whatsapp:${sub.whatsapp}`,
   });
 }
 

@@ -134,12 +134,17 @@ const db = {
     const subs = _read();
     const idx  = subs.findIndex(s => s.id === subscriberId);
     if (idx === -1) return false;
-    if (!subs[idx].pushTokens) subs[idx].pushTokens = [];
-    if (!subs[idx].pushTokens.includes(token)) {
-      subs[idx].pushTokens.push(token);
-      _write(subs);
-      console.log(`[DB] Push token saved for ${subs[idx].name}`);
-    }
+    // Remove this token from any other subscriber first (same browser re-registered
+    // under a different account — would cause duplicate deliveries).
+    subs.forEach((s, i) => {
+      if (i !== idx && Array.isArray(s.pushTokens))
+        s.pushTokens = s.pushTokens.filter(t => t !== token);
+    });
+    // Replace all existing tokens — one active token per subscriber.
+    // Appending accumulates stale tokens and causes duplicate push notifications.
+    subs[idx].pushTokens = [token];
+    _write(subs);
+    console.log(`[DB] Push token saved for ${subs[idx].name} (replaced)`);
     return true;
   },
 
