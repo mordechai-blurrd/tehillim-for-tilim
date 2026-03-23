@@ -168,9 +168,9 @@ Even one Psalm said with full intention rises straight to Heaven.
 
 עם ישראל חי — Am Yisrael Chai.
 
-Suggested: Tehillim 20, 83, 121, or 130.
+Suggested: Tehillim 121 — שיר למעלות
 
-Read Tehillim now → https://www.sefaria.org/Psalms
+Read Tehillim 121 now → https://www.sefaria.org/Psalms.121
 
 —
 Tehillim for Tilim | תהילים לטילים`;
@@ -189,9 +189,9 @@ Rocket fire has been detected near:
 *Please stop and say Tehillim now.*
 Even one Psalm said with intention is powerful.
 
-Suggested: Chapters 20, 83, 121, or 130.
+Suggested: Chapter 121 — שיר למעלות
 
-📖 Read Tehillim now → https://www.sefaria.org/Psalms
+📖 Read Tehillim 121 now → https://www.sefaria.org/Psalms.121
 
 _עם ישראל חי — Am Yisrael Chai_ 🕊️
 
