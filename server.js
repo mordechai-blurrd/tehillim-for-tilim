@@ -208,15 +208,19 @@ app.delete('/api/push-token', (req, res) => {
 
 // POST /api/whatsapp-webhook — Twilio inbound WhatsApp messages
 app.post('/api/whatsapp-webhook', async (req, res) => {
-  const body = (req.body.Body || '').trim().toLowerCase();
-  const from = (req.body.From || '').replace('whatsapp:', ''); // E.164 number
+  const body   = (req.body.Body || '').trim().toLowerCase();
+  const from   = (req.body.From || '').replace('whatsapp:', ''); // E.164 number
+  const status = req.body.SmsStatus || req.body.MessageStatus || '';
+
+  // Log every inbound webhook so we can diagnose unexpected opt-outs
+  console.log(`[WhatsApp Webhook] from=${from} body="${body}" status=${status} optOutType=${req.body.OptOutType||''}`);
 
   if (!from) return res.type('text/xml').send('<Response></Response>');
 
   // Handle opt-out
   if (['stop', 'unsubscribe', 'cancel', 'end', 'quit'].includes(body)) {
     const removed = db.removeByPhone(from);
-    console.log(`[WhatsApp] STOP from ${from} — ${removed ? 'unsubscribed' : 'not found'}`);
+    console.log(`[WhatsApp] STOP from ${from} — ${removed ? 'unsubscribed' : 'not found'} — OptOutType=${req.body.OptOutType||'unknown'}`);
     return res.type('text/xml').send('<Response></Response>');
   }
 
