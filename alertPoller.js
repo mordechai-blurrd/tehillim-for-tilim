@@ -138,29 +138,19 @@ class AlertPoller extends EventEmitter {
     if (!Array.isArray(data) || data.length === 0) return null;
 
     const latest = data[0];
+    const threat = latest.threat;
 
-    // Log the full raw object so we can see exactly what fields aircraft alerts have
-    console.log('[Poller] tzevaadom raw:', JSON.stringify(latest));
-
-    const title  = latest.title || '';
-    const ntype  = latest.notificationType ?? latest.notification_type ?? latest.type ?? null;
-
-    // Primary filter: notificationType 1 = rockets/missiles. Any other type is skipped.
-    if (ntype != null && ntype !== 1) {
-      console.log(`[Poller] Skipping non-rocket tzevaadom alert (type=${ntype}): "${title}"`);
-      return null;
-    }
-
-    // Secondary filter: title-based check (catches alerts with no type field)
-    if (!isRocketTitle(title)) {
-      console.log(`[Poller] Skipping non-rocket tzevaadom alert (title): "${title}"`);
+    // threat=1 is rockets/missiles only. All other values are dropped.
+    // (aircraft/confrontation line = threat 5, earthquake = threat 3, etc.)
+    if (threat !== 1) {
+      console.log(`[Poller] Skipping non-rocket tzevaadom alert (threat=${threat})`);
       return null;
     }
 
     return {
-      id:    String(latest.time || latest.id || Date.now()),
+      id:    String(latest.notificationId || latest.time || Date.now()),
       cat:   '1',
-      title: title || 'ירי רקטות וטילים',
+      title: latest.title || 'ירי רקטות וטילים',
       data:  latest.cities || latest.data || [],
       desc:  latest.instructions || latest.desc || 'היכנסו למרחב המוגן',
     };
