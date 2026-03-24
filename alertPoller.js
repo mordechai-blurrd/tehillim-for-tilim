@@ -138,17 +138,21 @@ class AlertPoller extends EventEmitter {
     if (!Array.isArray(data) || data.length === 0) return null;
 
     const latest = data[0];
+
+    // Log the full raw object so we can see exactly what fields aircraft alerts have
+    console.log('[Poller] tzevaadom raw:', JSON.stringify(latest));
+
     const title  = latest.title || '';
+    const ntype  = latest.notificationType ?? latest.notification_type ?? latest.type ?? null;
 
     // Primary filter: notificationType 1 = rockets/missiles. Any other type is skipped.
-    // This catches aircraft alerts even when their title is empty/null.
-    if (latest.notificationType != null && latest.notificationType !== 1) {
-      console.log(`[Poller] Skipping non-rocket tzevaadom alert (notificationType=${latest.notificationType}): "${title}"`);
+    if (ntype != null && ntype !== 1) {
+      console.log(`[Poller] Skipping non-rocket tzevaadom alert (type=${ntype}): "${title}"`);
       return null;
     }
 
-    // Secondary filter: if no notificationType, fall back to title check.
-    if (latest.notificationType == null && !isRocketTitle(title)) {
+    // Secondary filter: title-based check (catches alerts with no type field)
+    if (!isRocketTitle(title)) {
       console.log(`[Poller] Skipping non-rocket tzevaadom alert (title): "${title}"`);
       return null;
     }
