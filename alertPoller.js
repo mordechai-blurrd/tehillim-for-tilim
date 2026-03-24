@@ -20,10 +20,11 @@ const MAKO_URL  = 'https://www.mako.co.il/Collab/amudanan/alerts.json';
 const POLL_MS        = (parseInt(process.env.POLL_INTERVAL_SECONDS) || 5) * 1000;
 
 // Strict whitelist: only rocket/missile fire alerts pass through.
-// Empty title = oref default (rocket alert), allow.
-// Any non-empty title must explicitly contain rocket/missile terms.
+// Title must either be empty (oref default = rocket) OR contain rocket/missile terms.
+// Note: tzevaadom uses notificationType for primary filtering so empty titles
+// from non-rocket tzevaadom alerts are caught before reaching here.
 function isRocketTitle(title) {
-  if (!title) return true;
+  if (!title) return true; // oref returns empty body for rockets — allow
   return /רקטות|טילים/.test(title);
 }
 const CLEAR_AFTER_MS = 30_000;
@@ -139,9 +140,16 @@ class AlertPoller extends EventEmitter {
     const latest = data[0];
     const title  = latest.title || '';
 
-    // Filter: only rocket/missile alerts. Skip hostile aircraft, earthquakes, etc.
-    if (!isRocketTitle(title)) {
-      console.log(`[Poller] Skipping non-rocket tzevaadom alert: "${title}"`);
+    // Primary filter: notificationType 1 = rockets/missiles. Any other type is skipped.
+    // This catches aircraft alerts even when their title is empty/null.
+    if (latest.notificationType != null && latest.notificationType !== 1) {
+      console.log(`[Poller] Skipping non-rocket tzevaadom alert (notificationType=${latest.notificationType}): "${title}"`);
+      return null;
+    }
+
+    // Secondary filter: if no notificationType, fall back to title check.
+    if (latest.notificationType == null && !isRocketTitle(title)) {
+      console.log(`[Poller] Skipping non-rocket tzevaadom alert (title): "${title}"`);
       return null;
     }
 
