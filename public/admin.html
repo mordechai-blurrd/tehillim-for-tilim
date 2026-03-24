@@ -188,6 +188,7 @@
     <div class="actions">
       <button class="btn-sm" onclick="load()">↻ Refresh</button>
       <button class="btn-sm" onclick="exportCSV()">⬇ Export CSV</button>
+      <button class="btn-sm" style="border-color:rgba(230,57,70,0.4);color:#ff6b74" onclick="purgeInactive()">🗑 Purge Inactive</button>
     </div>
   </div>
 
@@ -460,6 +461,16 @@ function exportCSV() {
   a.href = URL.createObjectURL(blob);
   a.download = 'subscribers_' + new Date().toISOString().slice(0,10) + '.csv';
   a.click();
+}
+
+async function purgeInactive() {
+  const inactive = allSubs.filter(s => !s.active);
+  if (!inactive.length) { alert('No inactive subscribers to purge.'); return; }
+  if (!confirm(`Permanently delete ${inactive.length} inactive subscriber record(s)? This cannot be undone.`)) return;
+  const res = await fetch(`/api/admin/purge-inactive?key=${encodeURIComponent(adminKey)}`, { method: 'POST' });
+  const data = await res.json();
+  if (data.ok) { alert(`Purged ${data.deleted} inactive record(s).`); load(); }
+  else alert('Purge failed: ' + (data.error || 'unknown error'));
 }
 
 function csvCell(v) {

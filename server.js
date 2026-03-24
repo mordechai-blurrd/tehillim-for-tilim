@@ -328,6 +328,21 @@ app.get('/api/admin', (req, res) => {
   });
 });
 
+// POST /api/admin/purge-inactive — permanently delete all inactive subscriber records
+app.post('/api/admin/purge-inactive', (req, res) => {
+  const adminKey = process.env.ADMIN_KEY;
+  if (adminKey) {
+    const provided = req.query.key || req.headers['authorization']?.replace(/^Bearer\s+/i, '');
+    if (provided !== adminKey) return res.status(403).json({ ok: false, error: 'Forbidden' });
+  }
+  const subs    = db.all();
+  const active  = subs.filter(s => s.active);
+  const deleted = subs.length - active.length;
+  db._write(active);
+  console.log(`[Admin] Purged ${deleted} inactive subscriber record(s)`);
+  res.json({ ok: true, deleted });
+});
+
 // POST /api/test-alert  (dev / admin only)
 app.post('/api/test-alert', async (req, res) => {
   const adminKey = process.env.ADMIN_KEY;
