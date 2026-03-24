@@ -89,6 +89,16 @@
 
   <div class="card">
 
+    <!-- Confirm (link from message) -->
+    <div data-state="confirm" id="s-confirm">
+      <div class="icon">🔕</div>
+      <div class="title">Unsubscribe?</div>
+      <div class="sub" style="margin-bottom:24px">You will no longer receive rocket alert notifications.</div>
+      <button class="btn" id="confirm-btn">Yes, unsubscribe me</button>
+      <br>
+      <a href="/" class="back-link">← No, keep me subscribed</a>
+    </div>
+
     <!-- Loading -->
     <div data-state="loading" id="s-loading">
       <div class="icon">⏳</div>
@@ -178,7 +188,9 @@ async function submitForm() {
   }
 }
 
-// On load — auto-process if query params are present
+// On load — show confirmation form, never auto-unsubscribe.
+// WhatsApp and other messaging apps fetch URLs to generate link previews,
+// which would silently unsubscribe the user if we auto-processed here.
 (async function init() {
   const params = new URLSearchParams(location.search);
   const id    = params.get('id');
@@ -186,9 +198,13 @@ async function submitForm() {
   const phone = params.get('phone');
 
   if (id || email || phone) {
-    show('s-loading');
-    const payload = id ? { id } : email ? { email } : { phone };
-    try { await unsubscribe(payload); } catch { show('s-notfound'); }
+    // Pre-fill the confirmation state but require a button click to confirm.
+    show('s-confirm');
+    document.getElementById('confirm-btn').onclick = async () => {
+      show('s-loading');
+      const payload = id ? { id } : email ? { email } : { phone };
+      try { await unsubscribe(payload); } catch { show('s-notfound'); }
+    };
   } else {
     show('s-form');
   }
