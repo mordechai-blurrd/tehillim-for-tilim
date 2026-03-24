@@ -140,10 +140,10 @@ class AlertPoller extends EventEmitter {
     const latest = data[0];
     const threat = latest.threat;
 
-    // threat=1 is rockets/missiles only. All other values are dropped.
+    // threat=0 is rockets/missiles only. All other values are dropped.
     // (aircraft/confrontation line = threat 5, earthquake = threat 3, etc.)
-    if (threat !== 1) {
-      console.log(`[Poller] Skipping non-rocket tzevaadom alert (threat=${threat}) raw:`, JSON.stringify(latest));
+    if (threat !== 0) {
+      console.log(`[Poller] Skipping non-rocket tzevaadom alert (threat=${threat})`);
       return null;
     }
 
