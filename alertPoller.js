@@ -4,9 +4,9 @@
  * Emits 'alert' events when new rocket fire is detected.
  * Emits 'clear' events when the alert window ends.
  *
- * Source chain (falls through on consecutive failures):
- *   1. oref.org.il        — official IDF feed (requires Israeli IP)
- *   2. tzevaadom.co.il    — community mirror, globally accessible
+ * Source chain (falls through on consecutive failures, always returns to tzevaadom):
+ *   1. tzevaadom.co.il    — community mirror, globally accessible (primary)
+ *   2. oref.org.il        — official IDF feed (requires Israeli IP)
  *   3. mako.co.il         — Israeli news feed, globally accessible
  */
 
@@ -28,7 +28,7 @@ function isRocketTitle(title) {
   return /רקטות|טילים/.test(title);
 }
 const CLEAR_AFTER_MS = 30_000;
-const SOURCES        = ['oref', 'tzevaadom', 'mako'];
+const SOURCES        = ['tzevaadom', 'oref', 'mako'];
 const WATCHDOG_MS    = 3 * 60 * 1000;  // check every 3 min
 const STALE_MS       = 5 * 60 * 1000;  // restart if no success in 5 min
 
@@ -45,6 +45,7 @@ class AlertPoller extends EventEmitter {
     this._sourceIdx        = 0;   // index into SOURCES
     this._consecutiveFails = 0;
     this._lastSuccessTime  = null;
+    this._ticking          = false;
   }
 
   start() {
@@ -66,7 +67,7 @@ class AlertPoller extends EventEmitter {
     if (!stale) return;
     console.error(`[Watchdog] ⚠️  No successful poll in ${STALE_MS / 60000} min — restarting poller`);
     clearInterval(this._timer);
-    this._sourceIdx        = 1; // restart on tzevaadom (skip oref — needs Israeli IP)
+    this._sourceIdx        = 0; // restart on tzevaadom (primary)
     this._consecutiveFails = 0;
     this._lastSuccessTime  = Date.now();
     this._tick();
@@ -75,6 +76,8 @@ class AlertPoller extends EventEmitter {
   }
 
   async _tick() {
+    if (this._ticking) return;
+    this._ticking = true;
     try {
       const data = await this._fetchCurrent();
       this._consecutiveFails = 0;
@@ -84,13 +87,15 @@ class AlertPoller extends EventEmitter {
       this._consecutiveFails++;
       console.warn(`[Poller] Fetch failed (${this._consecutiveFails}) [${SOURCES[this._sourceIdx]}]:`, err.message);
 
-      // Cycle to next source after 3 consecutive failures (wraps back to tzevaadom, skipping oref)
+      // Cycle to next source after 3 consecutive failures (always wraps back to tzevaadom)
       if (this._consecutiveFails >= 3) {
-        const next = this._sourceIdx < SOURCES.length - 1 ? this._sourceIdx + 1 : 1; // skip oref on wrap
+        const next = this._sourceIdx < SOURCES.length - 1 ? this._sourceIdx + 1 : 0; // always wrap back to tzevaadom
         this._sourceIdx = next;
         this._consecutiveFails = 0;
         console.log(`[Poller] Switching source: ${SOURCES[this._sourceIdx]}`);
       }
+    } finally {
+      this._ticking = false;
     }
   }
 
