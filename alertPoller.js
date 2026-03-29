@@ -64,15 +64,22 @@ class AlertPoller extends EventEmitter {
 
   _watchdog() {
     const stale = Date.now() - (this._lastSuccessTime || 0) > STALE_MS;
-    if (!stale) return;
-    console.error(`[Watchdog] ⚠️  No successful poll in ${STALE_MS / 60000} min — restarting poller`);
-    clearInterval(this._timer);
-    this._sourceIdx        = 0; // restart on tzevaadom (primary)
-    this._consecutiveFails = 0;
-    this._lastSuccessTime  = Date.now();
-    this._tick();
-    this._timer = setInterval(() => this._tick(), POLL_MS);
-    console.log('[Watchdog] Poller restarted.');
+
+    if (stale) {
+      console.error(`[Watchdog] ⚠️  No successful poll in ${STALE_MS / 60000} min — restarting poller`);
+      clearInterval(this._timer);
+      this._sourceIdx        = 0;
+      this._consecutiveFails = 0;
+      this._lastSuccessTime  = Date.now();
+      this._tick();
+      this._timer = setInterval(() => this._tick(), POLL_MS);
+      console.log('[Watchdog] Poller restarted.');
+    } else if (this._sourceIdx !== 0) {
+      // Fallback is "working" but may be missing alerts — probe tzevaadom to see if it recovered
+      console.log(`[Watchdog] On fallback (${SOURCES[this._sourceIdx]}) — probing tzevaadom...`);
+      this._sourceIdx        = 0;
+      this._consecutiveFails = 0;
+    }
   }
 
   async _tick() {

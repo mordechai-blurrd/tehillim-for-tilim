@@ -107,8 +107,9 @@ const COUNT_SEED = parseInt(process.env.SUBSCRIBER_COUNT_SEED) || 0;
 
 // GET /api/status
 app.get('/api/status', (req, res) => {
-  res.json({
-    ...poller.getStatus(),
+  const status = poller.getStatus();
+  res.status(status.pollerHealthy ? 200 : 500).json({
+    ...status,
     subscribers: db.count() + COUNT_SEED,
     wsClients:   wss.clients.size,
     uptime:      process.uptime(),
